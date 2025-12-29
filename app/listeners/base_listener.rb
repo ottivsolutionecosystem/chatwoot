@@ -29,6 +29,11 @@ class BaseListener
     [inbox, inbox.account]
   end
 
+  def extract_calendar_item_and_account(event)
+    calendar_item = event.data[:calendar_item]
+    [calendar_item, calendar_item.account]
+  end
+
   def extract_changed_attributes(event)
     changed_attributes = event.data[:changed_attributes]
 

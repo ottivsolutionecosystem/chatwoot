@@ -71,7 +71,39 @@ class OttivCalendarItem < ApplicationRecord
           .find_each(&:complete!)
   end
 
+  def webhook_data
+    {
+      id: id,
+      item_type: item_type,
+      title: title,
+      description: description,
+      start_at: start_at,
+      end_at: end_at,
+      location: location,
+      status: status,
+      user_id: user_id,
+      account: account.webhook_data,
+      user: user.webhook_data,
+      conversation_id: conversation_id,
+      conversation: conversation&.webhook_data,
+      participants: participants.map(&:webhook_data),
+      contacts: contacts.map(&:webhook_data),
+      created_at: created_at,
+      updated_at: updated_at
+    }
+  end
+
+  after_create_commit :dispatch_create_event
+
   private
+
+  def dispatch_create_event
+    Rails.configuration.dispatcher.dispatch(
+      Events::Types::CALENDAR_ITEM_CREATED,
+      Time.zone.now,
+      calendar_item: self
+    )
+  end
 
   def end_at_after_start_at
     return unless end_at && start_at

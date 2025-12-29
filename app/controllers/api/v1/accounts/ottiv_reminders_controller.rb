@@ -3,7 +3,7 @@ class Api::V1::Accounts::OttivRemindersController < Api::V1::Accounts::BaseContr
     # Filter reminders by current account through calendar items
     @reminders = OttivReminder.joins(:ottiv_calendar_item)
                                .where(ottiv_calendar_items: { account_id: Current.account.id })
-                               .includes(:ottiv_calendar_item)
+                               .includes(ottiv_calendar_item: [:participants])
 
     # Filter pending (for scheduler to fetch)
     if params[:pending] == 'true'
@@ -11,7 +11,15 @@ class Api::V1::Accounts::OttivRemindersController < Api::V1::Accounts::BaseContr
     end
 
     @reminders = @reminders.order(notify_at: :asc)
-    render json: @reminders.as_json(include: :ottiv_calendar_item)
+    
+    # Incluir participantes no JSON
+    render json: @reminders.as_json(
+      include: {
+        ottiv_calendar_item: {
+          include: :participants
+        }
+      }
+    )
   end
 
   def update

@@ -12,7 +12,7 @@ class OttivCalendarItems::CreateService
       calendar_item = create_calendar_item
       create_contacts(calendar_item) if params[:contact_ids].present?
       create_participants(calendar_item) # Sempre cria, incluindo o criador
-      create_reminders(calendar_item) if params[:reminders].present?
+      create_reminders(calendar_item) # Sempre cria reminders automáticos para reminder/event
 
       # Notificar participantes após criação
       OttivNotifyParticipantsJob.perform_later(calendar_item.id)
@@ -53,13 +53,33 @@ class OttivCalendarItems::CreateService
   end
 
   def create_reminders(calendar_item)
-    return unless params[:reminders].is_a?(Array)
+    # Reminders manuais (se fornecidos)
+    if params[:reminders].is_a?(Array)
+      params[:reminders].each do |reminder_data|
+        calendar_item.ottiv_reminders.create!(
+          notify_at: reminder_data[:notify_at],
+          channel: reminder_data[:channel] || 'in_app'
+        )
+      end
+    end
 
-    params[:reminders].each do |reminder_data|
-      calendar_item.ottiv_reminders.create!(
-        notify_at: reminder_data[:notify_at],
-        channel: reminder_data[:channel] || 'in_app'
-      )
+    # Criar reminders automáticos para push (30, 15, 10, 5 minutos antes)
+    # Apenas para items do tipo 'reminder' ou 'event'
+    if calendar_item.reminder? || calendar_item.event?
+      start_time = calendar_item.start_at
+
+      # Criar reminders apenas se o horário ainda não passou
+      [30, 15, 10, 5].each do |minutes_before|
+        notify_at = start_time - minutes_before.minutes
+
+        # Só criar se o horário de notificação ainda não passou
+        if notify_at > Time.current
+          calendar_item.ottiv_reminders.create!(
+            notify_at: notify_at,
+            channel: 'push' # Canal específico para push notifications automáticas
+          )
+        end
+      end
     end
   end
 

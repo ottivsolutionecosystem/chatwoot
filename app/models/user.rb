@@ -116,6 +116,8 @@ class User < ApplicationRecord
   has_many :ottiv_notification_subscriptions, class_name: 'OttivNotificationSubscription', dependent: :destroy_async
   has_many :ottiv_notification_settings, class_name: 'OttivNotificationSetting', dependent: :destroy_async
   has_many :ottiv_notifications, class_name: 'OttivNotification', dependent: :destroy_async
+  has_one :ottiv_user_contact, class_name: 'OttivUserContact', dependent: :destroy_async
+  has_one :user_contact, through: :ottiv_user_contact, source: :contact
 
   before_validation :set_password_and_uid, on: :create
   after_destroy :remove_macros

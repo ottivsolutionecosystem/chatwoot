@@ -34,6 +34,9 @@ Rails.application.routes.draw do
 
   get '/api', to: 'api#index'
   namespace :api, defaults: { format: 'json' } do
+    namespace :ottiv do
+      get 'config-find', to: 'ottiv_configs#find'
+    end
     namespace :v1 do
       # ----------------------------------
       # start of account scoped api routes
@@ -117,6 +120,8 @@ Rails.application.routes.draw do
               post :filter
             end
             scope module: :conversations do
+              # Ottiv endpoint para buscar uma mensagem específica
+              get 'messages/:message_id', to: 'ottiv_messages#show', as: :ottiv_message
               resources :messages, only: [:index, :create, :destroy, :update] do
                 member do
                   post :translate
@@ -220,6 +225,8 @@ Rails.application.routes.draw do
           end
           resource :notification_settings, only: [:show, :update]
           resource :ottiv_notification_settings, only: [:show, :update]
+          resource :ottiv_user_contact, only: [:show, :create, :update, :destroy]
+          resources :ottiv_user_contacts, only: [:index] # Listar todos os user_contacts da conta
           resources :ottiv_notifications, only: [:create]
           resources :ottiv_conversations, only: [] do
             collection do
@@ -240,6 +247,30 @@ Rails.application.routes.draw do
           end
           # Ottiv reminders (for managing reminders within account scope)
           resources :ottiv_reminders, only: [:index, :update]
+
+          # Ottiv CRM endpoints
+          resources :ottiv_deals, only: [] do
+            collection do
+              post :process
+            end
+          end
+
+          resources :ottiv_deal_phases, only: [:show] do
+            member do
+              get :by_deal
+            end
+          end
+
+          resource :ottiv_config, only: [:show]
+
+          resources :ottiv_sellers, only: [] do
+            collection do
+              get :queue
+              post :assign
+            end
+          end
+
+          resources :ottiv_mentions, only: [:create]
 
           resources :teams do
             resources :team_members, only: [:index, :create] do

@@ -58,4 +58,7 @@ module Events::Types
 
   # copilot events
   COPILOT_MESSAGE_CREATED = 'copilot.message.created'
+
+  # calendar item events
+  CALENDAR_ITEM_CREATED = 'calendar_item.created'
 end
