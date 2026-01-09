@@ -2,7 +2,9 @@ module AccessTokenAuthHelper
   BOT_ACCESSIBLE_ENDPOINTS = {
     'api/v1/accounts/conversations' => %w[toggle_status toggle_priority create update custom_attributes],
     'api/v1/accounts/conversations/messages' => ['create'],
-    'api/v1/accounts/conversations/assignments' => ['create']
+    'api/v1/accounts/conversations/assignments' => ['create'],
+    'api/v1/ottiv_scheduled_messages' => ['index', 'send_message', 'update', 'mark_as_failed'],
+    'api/v1/ottiv_reminders' => ['index', 'update']
   }.freeze
 
   def ensure_access_token

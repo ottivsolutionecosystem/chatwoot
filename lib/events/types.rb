@@ -61,4 +61,5 @@ module Events::Types
 
   # calendar item events
   CALENDAR_ITEM_CREATED = 'calendar_item.created'
+  CALENDAR_ITEM_UPDATED = 'calendar_item.updated'
 end

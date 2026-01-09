@@ -77,8 +77,8 @@ class OttivCalendarItem < ApplicationRecord
       item_type: item_type,
       title: title,
       description: description,
-      start_at: start_at,
-      end_at: end_at,
+      start_at: start_at&.to_i, # Unix timestamp (segundos)
+      end_at: end_at&.to_i, # Unix timestamp (segundos)
       location: location,
       status: status,
       user_id: user_id,
@@ -88,18 +88,27 @@ class OttivCalendarItem < ApplicationRecord
       conversation: conversation&.webhook_data,
       participants: participants.map(&:webhook_data),
       contacts: contacts.map(&:webhook_data),
-      created_at: created_at,
-      updated_at: updated_at
+      created_at: created_at.to_i, # Unix timestamp (segundos)
+      updated_at: updated_at.to_i # Unix timestamp (segundos)
     }
   end
 
   after_create_commit :dispatch_create_event
+  after_update_commit :dispatch_update_event
 
   private
 
   def dispatch_create_event
     Rails.configuration.dispatcher.dispatch(
       Events::Types::CALENDAR_ITEM_CREATED,
+      Time.zone.now,
+      calendar_item: self
+    )
+  end
+
+  def dispatch_update_event
+    Rails.configuration.dispatcher.dispatch(
+      Events::Types::CALENDAR_ITEM_UPDATED,
       Time.zone.now,
       calendar_item: self
     )

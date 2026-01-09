@@ -8,6 +8,7 @@ class Api::V1::Accounts::OttivRemindersController < Api::V1::Accounts::BaseContr
     # Filter pending (for scheduler to fetch)
     if params[:pending] == 'true'
       @reminders = @reminders.pending
+                               .where(ottiv_calendar_items: { status: :active })
     end
 
     @reminders = @reminders.order(notify_at: :asc)

@@ -91,6 +91,14 @@ class Api::V1::Accounts::OttivNotificationsController < Api::V1::Accounts::BaseC
         render json: { errors: ['Primary actor must exist and belong to the account'] }, status: :unprocessable_entity
         return
       end
+    when 'OttivCalendarItem'
+      # ✅ Buscar calendar item por account_id + id
+      @primary_actor = Current.account.ottiv_calendar_items.find_by(id: primary_actor_id)
+      unless @primary_actor
+        Rails.logger.error("❌ [OttivNotifications] OttivCalendarItem com id #{primary_actor_id} não encontrada no account #{Current.account.id}")
+        render json: { errors: ['Primary actor must exist and belong to the account'] }, status: :unprocessable_entity
+        return
+      end
     else
       Rails.logger.error("❌ [OttivNotifications] Primary actor type não suportado: #{primary_actor_type}")
       render json: { errors: ['Unsupported primary actor type'] }, status: :unprocessable_entity

@@ -22,11 +22,11 @@ class Api::V1::Accounts::OttivScheduledMessagesController < Api::V1::Accounts::B
     @scheduled_messages = @scheduled_messages.upcoming if params[:upcoming] == 'true'
 
     @scheduled_messages = @scheduled_messages.order(send_at: :asc)
-    render json: @scheduled_messages
+    render json: @scheduled_messages.map { |msg| scheduled_message_to_json(msg) }
   end
 
   def show
-    render json: @scheduled_message
+    render json: scheduled_message_to_json(@scheduled_message)
   end
 
   def create
@@ -37,7 +37,7 @@ class Api::V1::Accounts::OttivScheduledMessagesController < Api::V1::Accounts::B
     )
 
     @scheduled_message = service.perform
-    render json: @scheduled_message, status: :created
+    render json: scheduled_message_to_json(@scheduled_message), status: :created
   rescue ArgumentError => e
     render json: { error: e.message }, status: :unprocessable_entity
   rescue StandardError => e
@@ -48,7 +48,7 @@ class Api::V1::Accounts::OttivScheduledMessagesController < Api::V1::Accounts::B
     # Only allow updating status (to cancel)
     if params[:ottiv_scheduled_message][:status] == 'cancelled'
       @scheduled_message.cancel!
-      render json: @scheduled_message
+      render json: scheduled_message_to_json(@scheduled_message)
     else
       render json: { error: 'Only status update to cancelled is allowed' }, status: :unprocessable_entity
     end
@@ -104,6 +104,20 @@ class Api::V1::Accounts::OttivScheduledMessagesController < Api::V1::Accounts::B
       :timezone,
       :recurrence
     )
+  end
+
+  # Converte scheduled_message para JSON com timestamps em Unix timestamp (segundos)
+  # Similar ao formato usado em conversations, messages e calendar_items
+  def scheduled_message_to_json(message)
+    json = message.as_json
+
+    # Converter timestamps principais para Unix timestamp (segundos)
+    json['send_at'] = message.send_at.to_i if message.send_at
+    json['sent_at'] = message.sent_at.to_i if message.sent_at
+    json['created_at'] = message.created_at.to_i
+    json['updated_at'] = message.updated_at.to_i
+
+    json
   end
 end
 

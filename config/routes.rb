@@ -409,6 +409,16 @@ Rails.application.routes.draw do
       # Ottiv custom notification subscriptions endpoints (simplified, no VAPID validation)
       resource :ottiv_notification_subscription, only: [:create, :destroy], controller: 'ottiv_notification_subscriptions'
 
+      # Ottiv scheduler endpoints (administrative, no account scope required)
+      # Used by scheduler to fetch pending messages and reminders from all accounts
+      resources :ottiv_scheduled_messages, only: [:index, :update] do
+        member do
+          post :send_message
+          post :mark_as_failed
+        end
+      end
+      resources :ottiv_reminders, only: [:index, :update]
+
       namespace :widget do
         resource :direct_uploads, only: [:create]
         resource :config, only: [:create]

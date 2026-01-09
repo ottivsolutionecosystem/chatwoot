@@ -5,14 +5,13 @@ class OttivNotifyParticipantsJob < ApplicationJob
     calendar_item = OttivCalendarItem.find(calendar_item_id)
     account = calendar_item.account
 
-    # Nota: Os participantes já incluem o criador (garantido pelo CreateService)
-    calendar_item.participants.each do |user|
-      send_notifications_to_user(user, calendar_item, account)
-    end
+    # NOVO: Notificar apenas o user_id do registro atual
+    # Cada participante tem seu próprio registro, então não precisamos iterar sobre participantes
+    send_notifications_to_user(calendar_item.user, calendar_item, account)
 
-    Rails.logger.info "OttivNotifyParticipantsJob: Notified #{calendar_item.participants.count} participants for calendar item #{calendar_item.id}"
+    Rails.logger.info "OttivNotifyParticipantsJob: Notified user #{calendar_item.user_id} for calendar item #{calendar_item.id}"
   rescue StandardError => e
-    Rails.logger.error "OttivNotifyParticipantsJob: Error notifying participants for calendar item #{calendar_item_id}: #{e.message}"
+    Rails.logger.error "OttivNotifyParticipantsJob: Error notifying user for calendar item #{calendar_item_id}: #{e.message}"
   end
 
   private

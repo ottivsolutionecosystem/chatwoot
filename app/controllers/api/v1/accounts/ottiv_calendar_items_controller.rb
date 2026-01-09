@@ -6,8 +6,13 @@ class Api::V1::Accounts::OttivCalendarItemsController < Api::V1::Accounts::BaseC
     @calendar_items = Current.account.ottiv_calendar_items
                              .includes(:user, :ottiv_reminders, :conversation, :contacts, :participants)
 
-    # Filter by user
-    @calendar_items = @calendar_items.by_user(params[:user_id]) if params[:user_id].present?
+    # NOVO: Se não for administrador, filtrar apenas registros do usuário logado
+    unless Current.user.administrator?
+      @calendar_items = @calendar_items.by_user(Current.user.id)
+    end
+
+    # Filter by user (manter para compatibilidade, mas só funciona para admins)
+    @calendar_items = @calendar_items.by_user(params[:user_id]) if params[:user_id].present? && Current.user.administrator?
 
     # Filter by item_type
     @calendar_items = @calendar_items.where(item_type: params[:item_type]) if params[:item_type].present?
@@ -26,11 +31,11 @@ class Api::V1::Accounts::OttivCalendarItemsController < Api::V1::Accounts::BaseC
     @calendar_items = @calendar_items.by_conversation(params[:conversation_id]) if params[:conversation_id].present?
 
     @calendar_items = @calendar_items.order(start_at: :asc)
-    render json: @calendar_items.as_json(include: [:ottiv_reminders, :contacts, :participants])
+    render json: @calendar_items.map { |item| calendar_item_to_json(item) }
   end
 
   def show
-    render json: @calendar_item.as_json(include: [:ottiv_reminders, :contacts, :participants])
+    render json: calendar_item_to_json(@calendar_item)
   end
 
   def create
@@ -41,17 +46,21 @@ class Api::V1::Accounts::OttivCalendarItemsController < Api::V1::Accounts::BaseC
     )
 
     @calendar_item = service.perform
-    render json: @calendar_item.as_json(include: [:ottiv_reminders, :contacts, :participants]), status: :created
+    render json: calendar_item_to_json(@calendar_item), status: :created
   rescue StandardError => e
     render json: { error: e.message }, status: :unprocessable_entity
   end
 
   def update
-    if @calendar_item.update(calendar_item_params)
-      render json: @calendar_item.as_json(include: [:ottiv_reminders, :contacts, :participants])
-    else
-      render json: { errors: @calendar_item.errors.full_messages }, status: :unprocessable_entity
-    end
+    service = OttivCalendarItems::UpdateService.new(
+      calendar_item: @calendar_item,
+      params: calendar_item_params
+    )
+
+    @calendar_item = service.perform
+    render json: calendar_item_to_json(@calendar_item)
+  rescue StandardError => e
+    render json: { error: e.message }, status: :unprocessable_entity
   end
 
   def destroy
@@ -60,15 +69,23 @@ class Api::V1::Accounts::OttivCalendarItemsController < Api::V1::Accounts::BaseC
   end
 
   def complete
-    @calendar_item.complete!
-    render json: @calendar_item.as_json(include: [:ottiv_reminders, :contacts, :participants])
+    service = OttivCalendarItems::CompleteService.new(
+      calendar_item: @calendar_item
+    )
+
+    @calendar_item = service.perform
+    render json: calendar_item_to_json(@calendar_item)
   rescue StandardError => e
     render json: { error: e.message }, status: :unprocessable_entity
   end
 
   def cancel
-    @calendar_item.cancel!
-    render json: @calendar_item.as_json(include: [:ottiv_reminders, :contacts, :participants])
+    service = OttivCalendarItems::CancelService.new(
+      calendar_item: @calendar_item
+    )
+
+    @calendar_item = service.perform
+    render json: calendar_item_to_json(@calendar_item)
   rescue StandardError => e
     render json: { error: e.message }, status: :unprocessable_entity
   end
@@ -102,6 +119,47 @@ class Api::V1::Accounts::OttivCalendarItemsController < Api::V1::Accounts::BaseC
       participant_ids: [],
       reminders: [:notify_at, :channel]
     )
+  end
+
+  # Converte calendar_item para JSON com timestamps em Unix timestamp (segundos)
+  # Similar ao formato usado em conversations e messages
+  def calendar_item_to_json(item)
+    json = item.as_json(include: [:ottiv_reminders, :contacts, :participants])
+
+    # Converter timestamps principais para Unix timestamp (segundos)
+    json['start_at'] = item.start_at.to_i if item.start_at
+    json['end_at'] = item.end_at.to_i if item.end_at
+    json['created_at'] = item.created_at.to_i
+    json['updated_at'] = item.updated_at.to_i
+
+    # Adicionar dados do usuário (agente responsável)
+    if item.user
+      json['user'] = {
+        'id' => item.user.id,
+        'name' => item.user.name,
+        'display_name' => item.user.display_name,
+        'email' => item.user.email,
+        'thumbnail' => item.user.avatar_url
+      }
+    end
+
+    # Converter timestamps dos reminders
+    if json['ottiv_reminders']
+      json['ottiv_reminders'] = json['ottiv_reminders'].map do |reminder|
+        if reminder['notify_at']
+          reminder['notify_at'] = reminder['notify_at'].is_a?(String) ? Time.parse(reminder['notify_at']).to_i : reminder['notify_at'].to_i
+        end
+        if reminder['created_at']
+          reminder['created_at'] = reminder['created_at'].is_a?(String) ? Time.parse(reminder['created_at']).to_i : reminder['created_at'].to_i
+        end
+        if reminder['updated_at']
+          reminder['updated_at'] = reminder['updated_at'].is_a?(String) ? Time.parse(reminder['updated_at']).to_i : reminder['updated_at'].to_i
+        end
+        reminder
+      end
+    end
+
+    json
   end
 end
 

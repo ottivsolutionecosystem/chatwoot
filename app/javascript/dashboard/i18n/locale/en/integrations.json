@@ -44,7 +44,8 @@
             "CONTACT_UPDATED": "Contact updated",
             "CONVERSATION_TYPING_ON": "Conversation Typing On",
             "CONVERSATION_TYPING_OFF": "Conversation Typing Off",
-            "CALENDAR_ITEM_CREATED": "Calendar Item Created"
+            "CALENDAR_ITEM_CREATED": "Calendar Item Created",
+            "CALENDAR_ITEM_UPDATED": "Calendar Item Updated"
           }
         },
         "NAME": {
