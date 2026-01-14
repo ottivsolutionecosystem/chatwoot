@@ -135,7 +135,7 @@ class OttivCalendarItems::UpdateService
   end
 
   def calendar_item_params
-    params.permit(
+    permitted_params = params.permit(
       :item_type,
       :title,
       :description,
@@ -145,6 +145,18 @@ class OttivCalendarItems::UpdateService
       :status,
       :conversation_id
     )
+
+    # Converter display_id para id real
+    if permitted_params[:conversation_id].present?
+      conversation = calendar_item.account.conversations.find_by(display_id: permitted_params[:conversation_id])
+      if conversation
+        permitted_params[:conversation_id] = conversation.id
+      else
+        raise ArgumentError, "Conversation with display_id #{permitted_params[:conversation_id]} not found"
+      end
+    end
+
+    permitted_params
   end
 
   # Converte notify_at de string ISO para Time explicitamente

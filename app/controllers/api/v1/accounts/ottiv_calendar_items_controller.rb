@@ -132,6 +132,11 @@ class Api::V1::Accounts::OttivCalendarItemsController < Api::V1::Accounts::BaseC
     json['created_at'] = item.created_at.to_i
     json['updated_at'] = item.updated_at.to_i
 
+    # Converter conversation_id de id real para display_id (consistência com API Chatwoot)
+    if item.conversation_id.present? && item.conversation
+      json['conversation_id'] = item.conversation.display_id
+    end
+
     # Adicionar dados do usuário (agente responsável)
     if item.user
       json['user'] = {

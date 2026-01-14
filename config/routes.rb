@@ -373,6 +373,12 @@ Rails.application.routes.draw do
           end
 
           resources :upload, only: [:create]
+          
+          resource :profile, only: [] do
+            member do
+              put :custom_attributes
+            end
+          end
         end
       end
       # end of account scoped api routes
@@ -393,6 +399,7 @@ Rails.application.routes.draw do
           put :set_active_account
           post :resend_confirmation
           post :reset_access_token
+          put :custom_attributes
         end
 
         # MFA routes

@@ -117,6 +117,11 @@ class Api::V1::Accounts::OttivScheduledMessagesController < Api::V1::Accounts::B
     json['created_at'] = message.created_at.to_i
     json['updated_at'] = message.updated_at.to_i
 
+    # Converter conversation_id de id real para display_id (consistência com API Chatwoot)
+    if message.conversation_id.present? && message.conversation
+      json['conversation_id'] = message.conversation.display_id
+    end
+
     json
   end
 end

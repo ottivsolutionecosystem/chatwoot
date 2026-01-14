@@ -1,43 +1,24 @@
-class Api::V1::ProfilesController < Api::BaseController
+class Api::V1::Accounts::ProfilesController < Api::V1::Accounts::BaseController
   before_action :set_user
-
-  def show; end
-
-  def update
-    if password_params[:password].present?
-      render_could_not_create_error('Invalid current password') and return unless @user.valid_password?(password_params[:current_password])
-
-      @user.update!(password_params.except(:current_password))
-    end
-
-    @user.assign_attributes(profile_params)
-    @user.save!
-  end
 
   def custom_attributes
     custom_attrs = custom_attributes_params
-
-    # Obter account_id do primeiro token enviado (prioridade), header x-account ou Current.account
-    account_id = if custom_attrs[:wavoip_tokens].present? && custom_attrs[:wavoip_tokens].first&.dig(:account_id)
-                   custom_attrs[:wavoip_tokens].first[:account_id].to_i
-                 elsif request.headers['x-account'].present? || request.headers['HTTP_X_ACCOUNT'].present?
-                   (request.headers['x-account'] || request.headers['HTTP_X_ACCOUNT']).to_i
-                 else
-                   Current.account&.id
-                 end
+    
+    # Usar Current.account.id (já definido pelo EnsureCurrentAccountHelper via params[:account_id])
+    account_id = Current.account&.id
 
     raise ActiveRecord::RecordNotFound, 'Account not found' unless account_id
-
-    # Validar que o usuário pertence à account
+    
+    # Validar que o usuário pertence à account (já validado pelo EnsureCurrentAccountHelper, mas garantindo)
     account_user = @user.account_users.find_by(account_id: account_id)
     raise ActiveRecord::RecordNotFound, 'User does not belong to this account' unless account_user
-
-    # Validar que todos os tokens enviados têm o mesmo account_id
+    
+    # Validar que todos os tokens enviados têm o mesmo account_id (se enviado)
     if custom_attrs[:wavoip_tokens].present?
       custom_attrs[:wavoip_tokens].each do |token|
         token_account_id = token[:account_id]&.to_i
         if token_account_id.present? && token_account_id != account_id
-          raise ArgumentError, "All tokens must belong to the same account (expected #{account_id}, got #{token_account_id})"
+          raise ArgumentError, "Token account_id (#{token_account_id}) does not match current account (#{account_id})"
         end
       end
     end
@@ -61,10 +42,12 @@ class Api::V1::ProfilesController < Api::BaseController
     # Remover tokens da account atual
     @user.custom_attributes['wavoip_tokens'].reject! { |t| t['account_id'] == account_id }
 
-    # Adicionar novos tokens com account_id
+    # Adicionar novos tokens com account_id (usar account_id do Current.account, não do token)
     if custom_attrs[:wavoip_tokens].present?
       custom_attrs[:wavoip_tokens].each do |token|
-        @user.custom_attributes['wavoip_tokens'] << token.merge('account_id' => account_id)
+        # Remover account_id do token se presente e usar o account_id do Current.account
+        token_without_account_id = token.is_a?(Hash) ? token.except(:account_id, 'account_id') : token.to_h.except(:account_id, 'account_id')
+        @user.custom_attributes['wavoip_tokens'] << token_without_account_id.merge('account_id' => account_id)
       end
     end
 
@@ -79,58 +62,10 @@ class Api::V1::ProfilesController < Api::BaseController
     render 'api/v1/profiles/show', format: :json
   end
 
-  def avatar
-    @user.avatar.attachment.destroy! if @user.avatar.attached?
-    @user.reload
-  end
-
-  def auto_offline
-    @user.account_users.find_by!(account_id: auto_offline_params[:account_id]).update!(auto_offline: auto_offline_params[:auto_offline] || false)
-  end
-
-  def availability
-    @user.account_users.find_by!(account_id: availability_params[:account_id]).update!(availability: availability_params[:availability])
-  end
-
-  def set_active_account
-    @user.account_users.find_by(account_id: profile_params[:account_id]).update(active_at: Time.now.utc)
-    head :ok
-  end
-
-  def resend_confirmation
-    @user.send_confirmation_instructions unless @user.confirmed?
-    head :ok
-  end
-
-  def reset_access_token
-    @user.access_token.regenerate_token
-    @user.reload
-  end
-
   private
 
   def set_user
     @user = current_user
-  end
-
-  def availability_params
-    params.require(:profile).permit(:account_id, :availability)
-  end
-
-  def auto_offline_params
-    params.require(:profile).permit(:account_id, :auto_offline)
-  end
-
-  def profile_params
-    params.require(:profile).permit(
-      :email,
-      :name,
-      :display_name,
-      :avatar,
-      :message_signature,
-      :account_id,
-      ui_settings: {}
-    )
   end
 
   def custom_attributes_params
@@ -169,12 +104,5 @@ class Api::V1::ProfilesController < Api::BaseController
 
     custom_attrs.to_h
   end
-
-  def password_params
-    params.require(:profile).permit(
-      :current_password,
-      :password,
-      :password_confirmation
-    )
-  end
 end
+

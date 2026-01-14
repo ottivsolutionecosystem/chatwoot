@@ -30,7 +30,7 @@ class OttivScheduledMessages::CreateService
   end
 
   def scheduled_message_params
-    params.permit(
+    permitted_params = params.permit(
       :title,
       :message_type,
       :content,
@@ -43,6 +43,18 @@ class OttivScheduledMessages::CreateService
       :timezone,
       :recurrence
     )
+
+    # Converter display_id para id real
+    if permitted_params[:conversation_id].present?
+      conversation = account.conversations.find_by(display_id: permitted_params[:conversation_id])
+      if conversation
+        permitted_params[:conversation_id] = conversation.id
+      else
+        raise ArgumentError, "Conversation with display_id #{permitted_params[:conversation_id]} not found"
+      end
+    end
+
+    permitted_params
   end
 end
 
