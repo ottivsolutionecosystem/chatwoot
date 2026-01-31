@@ -40,6 +40,12 @@ class Api::V1::Accounts::OttivScheduledMessagesController < Api::V1::Accounts::B
     render json: scheduled_message_to_json(@scheduled_message), status: :created
   rescue ArgumentError => e
     render json: { error: e.message }, status: :unprocessable_entity
+  rescue ActiveRecord::RecordInvalid => e
+    # ✅ Capturar erros de validação do modelo e retornar detalhes
+    render json: {
+      error: e.record.errors.full_messages.join(', '),
+      errors: e.record.errors.as_json
+    }, status: :unprocessable_entity
   rescue StandardError => e
     render json: { error: e.message }, status: :unprocessable_entity
   end

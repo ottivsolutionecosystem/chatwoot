@@ -82,8 +82,18 @@ class OttivScheduledMessage < ApplicationRecord
   def send_at_in_future
     return unless send_at
 
+    # Converter send_at para UTC para comparação correta
+    send_at_utc = if send_at.is_a?(Time) || send_at.is_a?(ActiveSupport::TimeWithZone)
+                    send_at.utc
+                  elsif send_at.is_a?(String)
+                    Time.zone.parse(send_at).utc
+                  else
+                    send_at.to_time.utc
+                  end
+    current_time_utc = Time.current.utc
+    
     # Permitir margem de 1 minuto para compensar latência de rede e diferenças de fuso horário
-    errors.add(:send_at, 'must be in the future') if send_at <= 1.minute.ago
+    errors.add(:send_at, 'must be in the future') if send_at_utc <= (current_time_utc - 1.minute)
   end
 
   def conversation_required_for_scheduled_message

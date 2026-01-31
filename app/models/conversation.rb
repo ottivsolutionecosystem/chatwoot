@@ -59,6 +59,7 @@ class Conversation < ApplicationRecord
   include SortHandler
   include PushDataHelper
   include ConversationMuteHelpers
+  include OttivConversationHelpers
 
   validates :account_id, presence: true
   validates :inbox_id, presence: true

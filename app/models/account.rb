@@ -101,6 +101,8 @@ class Account < ApplicationRecord
   # Ottiv custom associations
   has_many :ottiv_calendar_items, dependent: :destroy_async
   has_many :ottiv_scheduled_messages, dependent: :destroy_async
+  has_many :ottiv_portals, dependent: :destroy_async
+  has_many :ottiv_cost_types, dependent: :destroy_async
 
   has_one_attached :contacts_export
 

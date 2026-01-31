@@ -139,8 +139,9 @@ class OttivConversationFinder < ConversationFinder
   end
 
   # Sobrescrever conversations para garantir distinct quando há filtros de labels
+  # ✅ Otimizado: usa scope ottiv_with_list_data e pré-carrega últimas mensagens
   def conversations
-    @conversations = conversations_base_query
+    @conversations = ottiv_conversations_base_query
 
     sort_by, sort_order = SORT_OPTIONS[params[:sort_by]] || SORT_OPTIONS['last_activity_at_desc']
     @conversations = @conversations.send(sort_by, sort_order)
@@ -151,11 +152,28 @@ class OttivConversationFinder < ConversationFinder
       @conversations = @conversations.distinct
     end
 
-    if params[:updated_within].present?
-      @conversations.where('conversations.updated_at > ?', Time.zone.now - params[:updated_within].to_i.seconds)
-    else
-      @conversations.page(current_page).per(ENV.fetch('CONVERSATION_RESULTS_PER_PAGE', '25').to_i)
-    end
+    paginated = if params[:updated_within].present?
+                  @conversations.where('conversations.updated_at > ?', Time.zone.now - params[:updated_within].to_i.seconds)
+                else
+                  @conversations.page(current_page).per(ENV.fetch('CONVERSATION_RESULTS_PER_PAGE', '25').to_i)
+                end
+
+    # ✅ Pré-carregar últimas mensagens para evitar N+1
+    Conversation.ottiv_preload_last_messages(paginated.to_a)
+
+    paginated
+  end
+
+  # ✅ Query base otimizada com unread_count calculado via subquery
+  def ottiv_conversations_base_query
+    @conversations.ottiv_with_list_data.includes(
+      :taggings,
+      :inbox,
+      { assignee: { avatar_attachment: [:blob] } },
+      { contact: { avatar_attachment: [:blob] } },
+      :team,
+      :contact_inbox
+    )
   end
 end
 

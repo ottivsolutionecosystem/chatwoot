@@ -28,6 +28,9 @@ class OttivScheduledMessages::SendService
     builder = Messages::MessageBuilder.new(user, conversation, message_params)
     message = builder.perform
 
+    # Process attachments from URLs (audio_url or media_url)
+    process_attachments_from_urls(message)
+
     # Mark message as scheduled
     message.update!(
       additional_attributes: (message.additional_attributes || {}).merge(is_scheduled: true)
@@ -49,16 +52,71 @@ class OttivScheduledMessages::SendService
       params[:content_type] = :text
     when 'media'
       params[:content_type] = :text
-      # Media URL handling would be done via attachments
+      # Media URL will be processed in process_attachments_from_urls
     when 'audio'
       params[:content_type] = :text
-      # Audio URL handling would be done via attachments
+      # Audio URL will be processed in process_attachments_from_urls
     when 'quick_reply'
       params[:content_type] = :text
       # Quick reply handling would be done via content_attributes
     end
 
     params
+  end
+
+  def process_attachments_from_urls(message)
+    # Process audio_url if present
+    if scheduled_message.audio_url.present? && scheduled_message.audio_url != 'pending_upload'
+      create_attachment_from_url(message, scheduled_message.audio_url, :audio)
+    end
+
+    # Process media_url if present
+    if scheduled_message.media_url.present? && scheduled_message.media_url != 'pending_upload'
+      # Detect file type from URL or content type
+      create_attachment_from_url(message, scheduled_message.media_url, nil)
+    end
+  end
+
+  def create_attachment_from_url(message, file_url, file_type = nil)
+    return if file_url.blank? || file_url == 'pending_upload'
+
+    begin
+      # Download file from URL
+      downloaded_file = Down.download(file_url)
+
+      # Detect file type if not provided
+      detected_file_type = file_type || detect_file_type_from_content_type(downloaded_file.content_type)
+
+      # Create attachment
+      attachment = message.attachments.new(
+        account_id: message.account_id,
+        file_type: detected_file_type
+      )
+
+      # Attach the downloaded file
+      attachment.file.attach(
+        io: downloaded_file,
+        filename: downloaded_file.original_filename || "attachment.#{detected_file_type}",
+        content_type: downloaded_file.content_type
+      )
+
+      attachment.save!
+
+      Rails.logger.info "✅ [ScheduledMessages] Attachment criado para mensagem #{message.id} a partir de URL: #{file_url} (tipo: #{detected_file_type})"
+    rescue StandardError => e
+      Rails.logger.error "❌ [ScheduledMessages] Erro ao criar attachment a partir de URL #{file_url}: #{e.message}"
+      Rails.logger.error e.backtrace.join("\n")
+      # Não falhar o envio da mensagem se o attachment falhar
+    end
+  end
+
+  def detect_file_type_from_content_type(content_type)
+    return :image if content_type&.start_with?('image/')
+    return :video if content_type&.start_with?('video/')
+    return :audio if content_type&.start_with?('audio/')
+    
+    # Default to image for media_url if type cannot be determined
+    :image
   end
 
   def update_scheduled_message_status

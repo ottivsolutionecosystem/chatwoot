@@ -232,6 +232,13 @@ Rails.application.routes.draw do
             collection do
               post :index
               get :index
+              get :initial_data
+            end
+          end
+          resources :ottiv_search, only: [] do
+            collection do
+              post :index
+              get :index
             end
           end
           resources :ottiv_calendar_items, only: [:index, :show, :create, :update, :destroy] do
@@ -247,6 +254,15 @@ Rails.application.routes.draw do
           end
           # Ottiv reminders (for managing reminders within account scope)
           resources :ottiv_reminders, only: [:index, :update]
+
+          # Ottiv Portals and Costs
+          resources :ottiv_portals, only: [:index, :show, :create, :update, :destroy] do
+            collection do
+              get :dashboard, to: 'ottiv_portals_dashboard#index'
+            end
+          end
+          resources :ottiv_cost_types, only: [:index, :show, :create, :update, :destroy]
+          resources :ottiv_portal_costs, only: [:index, :show, :create, :update, :destroy]
 
           # Ottiv CRM endpoints
           resources :ottiv_deals, only: [] do

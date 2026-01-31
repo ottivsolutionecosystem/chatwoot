@@ -10,6 +10,53 @@ class Api::V1::Accounts::OttivConversationsController < Api::V1::Accounts::BaseC
     render json: { error: 'Internal server error', message: e.message }, status: :internal_server_error
   end
 
+  # Endpoint otimizado que retorna dados iniciais em uma única requisição
+  # Retorna: mine, mention, all (se admin) + todos os contadores
+  def initial_data
+    @is_administrator = current_account.account_users.find_by(user_id: Current.user.id)&.administrator?
+
+    # Parâmetros base para todas as queries
+    base_params = {
+      status: 'all',
+      page: 1,
+      sort_by: 'last_activity_at_desc'
+    }
+
+    # Buscar conversas "mine" (atribuídas ao usuário atual)
+    mine_result = OttivConversationFinder.new(
+      Current.user,
+      base_params.merge(assignee_type: 'me')
+    ).perform
+
+    # Buscar conversas com menção
+    mention_result = OttivConversationFinder.new(
+      Current.user,
+      base_params.merge(assignee_type: 'all', conversation_type: 'mention')
+    ).perform
+
+    # Buscar todas as conversas (apenas para administradores)
+    all_result = nil
+    if @is_administrator
+      all_result = OttivConversationFinder.new(
+        Current.user,
+        base_params
+      ).perform
+    end
+
+    @mine_conversations = mine_result[:conversations]
+    @mention_conversations = mention_result[:conversations]
+    @all_conversations = all_result&.dig(:conversations) || []
+
+    # Contadores
+    @meta_counts = mine_result[:count]
+    @all_count = all_result&.dig(:count, :all_count) || @meta_counts[:all_count]
+    @mention_count = mention_result[:count][:all_count]
+  rescue StandardError => e
+    Rails.logger.error("❌ [OttivConversations] Erro ao buscar initial_data: #{e.class} - #{e.message}")
+    Rails.logger.error(e.backtrace.join("\n"))
+    render json: { error: 'Internal server error', message: e.message }, status: :internal_server_error
+  end
+
   private
 
   def ottiv_conversation_finder
