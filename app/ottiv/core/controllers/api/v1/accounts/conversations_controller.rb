@@ -1,146 +1,144 @@
-module Ottiv
-  module Core
-    module Controllers
-      module Api
-        module V1
-          module Accounts
-            class ConversationsController < ::Api::V1::Accounts::BaseController
-              def index
-                result = ottiv_conversation_finder.perform
-                @conversations = result[:conversations]
-                @conversations_count = result[:count]
-                @count_filter = result[:filtered_count] # Total filtrado sem paginação
-              rescue StandardError => e
-                Rails.logger.error("❌ [OttivConversations] Erro ao buscar conversas: #{e.class} - #{e.message}")
-                Rails.logger.error(e.backtrace.join("\n"))
-                render json: { error: 'Internal server error', message: e.message }, status: :internal_server_error
-              end
+module Core
+  module Controllers
+    module Api
+      module V1
+        module Accounts
+          class ConversationsController < ::Api::V1::Accounts::BaseController
+            def index
+              result = ottiv_conversation_finder.perform
+              @conversations = result[:conversations]
+              @conversations_count = result[:count]
+              @count_filter = result[:filtered_count] # Total filtrado sem paginação
+            rescue StandardError => e
+              Rails.logger.error("❌ [OttivConversations] Erro ao buscar conversas: #{e.class} - #{e.message}")
+              Rails.logger.error(e.backtrace.join("\n"))
+              render json: { error: 'Internal server error', message: e.message }, status: :internal_server_error
+            end
 
-              # Endpoint otimizado que retorna dados iniciais em uma única requisição
-              # Retorna: mine, mention, all (se admin) + todos os contadores
-              def initial_data
-                @is_administrator = current_account.account_users.find_by(user_id: Current.user.id)&.administrator?
+            # Endpoint otimizado que retorna dados iniciais em uma única requisição
+            # Retorna: mine, mention, all (se admin) + todos os contadores
+            def initial_data
+              @is_administrator = current_account.account_users.find_by(user_id: Current.user.id)&.administrator?
 
-                # Parâmetros base para todas as queries
-                base_params = {
-                  status: 'all',
-                  page: 1,
-                  sort_by: 'last_activity_at_desc'
-                }
+              # Parâmetros base para todas as queries
+              base_params = {
+                status: 'all',
+                page: 1,
+                sort_by: 'last_activity_at_desc'
+              }
 
-                # Buscar conversas "mine" (atribuídas ao usuário atual)
-                mine_result = Ottiv::Core::Queries::ConversationFinder.new(
+              # Buscar conversas "mine" (atribuídas ao usuário atual)
+              mine_result = Core::Queries::ConversationFinder.new(
+                Current.user,
+                base_params.merge(assignee_type: 'me')
+              ).perform
+
+              # Buscar conversas com menção
+              mention_result = Core::Queries::ConversationFinder.new(
+                Current.user,
+                base_params.merge(assignee_type: 'all', conversation_type: 'mention')
+              ).perform
+
+              # Buscar todas as conversas (apenas para administradores)
+              all_result = nil
+              if @is_administrator
+                all_result = Core::Queries::ConversationFinder.new(
                   Current.user,
-                  base_params.merge(assignee_type: 'me')
+                  base_params
                 ).perform
-
-                # Buscar conversas com menção
-                mention_result = Ottiv::Core::Queries::ConversationFinder.new(
-                  Current.user,
-                  base_params.merge(assignee_type: 'all', conversation_type: 'mention')
-                ).perform
-
-                # Buscar todas as conversas (apenas para administradores)
-                all_result = nil
-                if @is_administrator
-                  all_result = Ottiv::Core::Queries::ConversationFinder.new(
-                    Current.user,
-                    base_params
-                  ).perform
-                end
-
-                @mine_conversations = mine_result[:conversations]
-                @mention_conversations = mention_result[:conversations]
-                @all_conversations = all_result&.dig(:conversations) || []
-
-                # Contadores
-                @meta_counts = mine_result[:count]
-                @all_count = all_result&.dig(:count, :all_count) || @meta_counts[:all_count]
-                @mention_count = mention_result[:count][:all_count]
-              rescue StandardError => e
-                Rails.logger.error("❌ [OttivConversations] Erro ao buscar initial_data: #{e.class} - #{e.message}")
-                Rails.logger.error(e.backtrace.join("\n"))
-                render json: { error: 'Internal server error', message: e.message }, status: :internal_server_error
               end
 
-              private
+              @mine_conversations = mine_result[:conversations]
+              @mention_conversations = mention_result[:conversations]
+              @all_conversations = all_result&.dig(:conversations) || []
 
-              def ottiv_conversation_finder
-                @ottiv_conversation_finder ||= Ottiv::Core::Queries::ConversationFinder.new(Current.user, ottiv_params)
+              # Contadores
+              @meta_counts = mine_result[:count]
+              @all_count = all_result&.dig(:count, :all_count) || @meta_counts[:all_count]
+              @mention_count = mention_result[:count][:all_count]
+            rescue StandardError => e
+              Rails.logger.error("❌ [OttivConversations] Erro ao buscar initial_data: #{e.class} - #{e.message}")
+              Rails.logger.error(e.backtrace.join("\n"))
+              render json: { error: 'Internal server error', message: e.message }, status: :internal_server_error
+            end
+
+            private
+
+            def ottiv_conversation_finder
+              @ottiv_conversation_finder ||= Core::Queries::ConversationFinder.new(Current.user, ottiv_params)
+            end
+
+            def ottiv_params
+              # Aceitar parâmetros do body JSON + query params para paginação
+              body_params = {}
+
+              if request.content_type&.include?('json') && request.body.present?
+                begin
+                  body_content = request.body.read
+                  request.body.rewind # Reset body stream
+                  body_params = body_content.present? ? JSON.parse(body_content) : {}
+                rescue JSON::ParserError => e
+                  Rails.logger.error("❌ [OttivConversations] Erro ao parsear JSON: #{e.message}")
+                  body_params = {}
+                end
               end
 
-              def ottiv_params
-                # Aceitar parâmetros do body JSON + query params para paginação
-                body_params = {}
+              # Combinar body params com query params (query params têm prioridade para paginação)
+              # Permitir arrays também nos query params
+              query_params = params.permit(
+                :page, :sort_by, :status, :assignee_type, :conversation_type, :q, :searchTerm, :updated_within,
+                inbox_ids: [], label_titles: [], assignee_ids: [], include_unassigned: []
+              ).to_h
 
-                if request.content_type&.include?('json') && request.body.present?
-                  begin
-                    body_content = request.body.read
-                    request.body.rewind # Reset body stream
-                    body_params = body_content.present? ? JSON.parse(body_content) : {}
-                  rescue JSON::ParserError => e
-                    Rails.logger.error("❌ [OttivConversations] Erro ao parsear JSON: #{e.message}")
-                    body_params = {}
-                  end
-                end
+              # Converter body_params para hash simples antes de fazer merge
+              body_hash = body_params.is_a?(Hash) ? body_params : {}
+              merged_params = body_hash.with_indifferent_access.merge(query_params.with_indifferent_access)
 
-                # Combinar body params com query params (query params têm prioridade para paginação)
-                # Permitir arrays também nos query params
-                query_params = params.permit(
-                  :page, :sort_by, :status, :assignee_type, :conversation_type, :q, :searchTerm, :updated_within,
-                  inbox_ids: [], label_titles: [], assignee_ids: [], include_unassigned: []
-                ).to_h
-
-                # Converter body_params para hash simples antes de fazer merge
-                body_hash = body_params.is_a?(Hash) ? body_params : {}
-                merged_params = body_hash.with_indifferent_access.merge(query_params.with_indifferent_access)
-
-                # Normalizar searchTerm para q (compatibilidade com ConversationFinder)
-                if merged_params[:searchTerm].present? && merged_params[:q].blank?
-                  merged_params[:q] = merged_params[:searchTerm]
-                end
-
-                # Validar e normalizar arrays (apenas se presentes)
-                merged_params[:inbox_ids] = normalize_array(merged_params[:inbox_ids]) if merged_params.key?(:inbox_ids)
-                merged_params[:label_titles] = normalize_array(merged_params[:label_titles]) if merged_params.key?(:label_titles)
-                merged_params[:assignee_ids] = normalize_array(merged_params[:assignee_ids]) if merged_params.key?(:assignee_ids)
-
-                # Validar tipos
-                validate_params(merged_params)
-
-                # Garantir que retornamos um hash simples (não ActionController::Parameters)
-                # Converter para hash simples para evitar problemas com permit
-                result_hash = merged_params.is_a?(Hash) ? merged_params : merged_params.to_h
-                result_hash.with_indifferent_access
+              # Normalizar searchTerm para q (compatibilidade com ConversationFinder)
+              if merged_params[:searchTerm].present? && merged_params[:q].blank?
+                merged_params[:q] = merged_params[:searchTerm]
               end
 
-              def normalize_array(value)
-                return [] if value.blank?
-                return value if value.is_a?(Array)
-                [value].flatten.compact
+              # Validar e normalizar arrays (apenas se presentes)
+              merged_params[:inbox_ids] = normalize_array(merged_params[:inbox_ids]) if merged_params.key?(:inbox_ids)
+              merged_params[:label_titles] = normalize_array(merged_params[:label_titles]) if merged_params.key?(:label_titles)
+              merged_params[:assignee_ids] = normalize_array(merged_params[:assignee_ids]) if merged_params.key?(:assignee_ids)
+
+              # Validar tipos
+              validate_params(merged_params)
+
+              # Garantir que retornamos um hash simples (não ActionController::Parameters)
+              # Converter para hash simples para evitar problemas com permit
+              result_hash = merged_params.is_a?(Hash) ? merged_params : merged_params.to_h
+              result_hash.with_indifferent_access
+            end
+
+            def normalize_array(value)
+              return [] if value.blank?
+              return value if value.is_a?(Array)
+              [value].flatten.compact
+            end
+
+            def validate_params(params)
+              # Validar que inbox_ids são números se fornecidos
+              if params[:inbox_ids].present? && params[:inbox_ids].is_a?(Array)
+                params[:inbox_ids] = params[:inbox_ids].map(&:to_i).compact.reject(&:zero?)
               end
 
-              def validate_params(params)
-                # Validar que inbox_ids são números se fornecidos
-                if params[:inbox_ids].present? && params[:inbox_ids].is_a?(Array)
-                  params[:inbox_ids] = params[:inbox_ids].map(&:to_i).compact.reject(&:zero?)
-                end
+              # Validar que assignee_ids são números se fornecidos
+              if params[:assignee_ids].present? && params[:assignee_ids].is_a?(Array)
+                params[:assignee_ids] = params[:assignee_ids].map(&:to_i).compact.reject(&:zero?)
+              end
 
-                # Validar que assignee_ids são números se fornecidos
-                if params[:assignee_ids].present? && params[:assignee_ids].is_a?(Array)
-                  params[:assignee_ids] = params[:assignee_ids].map(&:to_i).compact.reject(&:zero?)
-                end
+              # Validar que label_titles são strings se fornecidos
+              if params[:label_titles].present? && params[:label_titles].is_a?(Array)
+                params[:label_titles] = params[:label_titles].map(&:to_s).compact.reject(&:blank?)
+              end
 
-                # Validar que label_titles são strings se fornecidos
-                if params[:label_titles].present? && params[:label_titles].is_a?(Array)
-                  params[:label_titles] = params[:label_titles].map(&:to_s).compact.reject(&:blank?)
-                end
-
-                # Validar page é um número positivo
-                if params[:page].present?
-                  params[:page] = params[:page].to_i
-                  params[:page] = 1 if params[:page] < 1
-                end
+              # Validar page é um número positivo
+              if params[:page].present?
+                params[:page] = params[:page].to_i
+                params[:page] = 1 if params[:page] < 1
               end
             end
           end
@@ -148,5 +146,5 @@ module Ottiv
       end
     end
   end
+end
 
-  end

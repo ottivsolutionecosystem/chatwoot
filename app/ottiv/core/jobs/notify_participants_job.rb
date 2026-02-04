@@ -1,80 +1,78 @@
-module Ottiv
-  module Core
-  module Jobs
-    class NotifyParticipantsJob < ApplicationJob
-      queue_as :ottiv_core_default
+module Core
+module Jobs
+  class NotifyParticipantsJob < ApplicationJob
+    queue_as :ottiv_core_default
 
-      def perform(calendar_item_id)
-        calendar_item = OttivCalendarItem.find(calendar_item_id)
-        account = calendar_item.account
+    def perform(calendar_item_id)
+      calendar_item = OttivCalendarItem.find(calendar_item_id)
+      account = calendar_item.account
 
-        # NOVO: Notificar apenas o user_id do registro atual
-        # Cada participante tem seu próprio registro, então não precisamos iterar sobre participantes
-        send_notifications_to_user(calendar_item.user, calendar_item, account)
+      # NOVO: Notificar apenas o user_id do registro atual
+      # Cada participante tem seu próprio registro, então não precisamos iterar sobre participantes
+      send_notifications_to_user(calendar_item.user, calendar_item, account)
 
-        Rails.logger.info "Ottiv::Core::Jobs::NotifyParticipantsJob: Notified user #{calendar_item.user_id} for calendar item #{calendar_item.id}"
-      rescue StandardError => e
-        Rails.logger.error "Ottiv::Core::Jobs::NotifyParticipantsJob: Error notifying user for calendar item #{calendar_item_id}: #{e.message}"
+      Rails.logger.info "Core::Jobs::NotifyParticipantsJob: Notified user #{calendar_item.user_id} for calendar item #{calendar_item.id}"
+    rescue StandardError => e
+      Rails.logger.error "Core::Jobs::NotifyParticipantsJob: Error notifying user for calendar item #{calendar_item_id}: #{e.message}"
+    end
+
+      private
+
+      def send_notifications_to_user(user, calendar_item, account)
+        # Criar notificação in-app
+        create_in_app_notification(user, calendar_item, account)
+
+        # TODO: Implementar push notification se configurado
+        # send_push_notification(user, calendar_item) if user.has_push_enabled?
+
+        # TODO: Implementar email se configurado
+        # send_email_notification(user, calendar_item) if user.has_email_notifications_enabled?
       end
 
-        private
+      def create_in_app_notification(user, calendar_item, account)
+        # Usar o sistema de notificações do Chatwoot se disponível
+        # Caso contrário, criar um registro de notificação personalizado
 
-        def send_notifications_to_user(user, calendar_item, account)
-          # Criar notificação in-app
-          create_in_app_notification(user, calendar_item, account)
+        notification_message = build_notification_message(calendar_item)
 
-          # TODO: Implementar push notification se configurado
-          # send_push_notification(user, calendar_item) if user.has_push_enabled?
-
-          # TODO: Implementar email se configurado
-          # send_email_notification(user, calendar_item) if user.has_email_notifications_enabled?
+        # Tentar usar o sistema de notificações nativo do Chatwoot
+        begin
+          Notification.create!(
+            account: account,
+            user: user,
+            notification_type: 'calendar_item',
+            primary_actor_type: 'OttivCalendarItem',
+            primary_actor_id: calendar_item.id,
+            read_at: nil,
+            # Adicionar metadados se suportado
+            meta: {
+              item_type: calendar_item.item_type,
+              title: calendar_item.title,
+              start_at: calendar_item.start_at,
+              end_at: calendar_item.end_at
+            }.compact
+          )
+        rescue StandardError => e
+          # Fallback: Logar se o sistema de notificações não estiver disponível
+          Rails.logger.warn "Could not create in-app notification: #{e.message}"
         end
+      end
 
-        def create_in_app_notification(user, calendar_item, account)
-          # Usar o sistema de notificações do Chatwoot se disponível
-          # Caso contrário, criar um registro de notificação personalizado
+      def build_notification_message(calendar_item)
+        type_label = case calendar_item.item_type
+                     when 'reminder'
+                       'Lembrete'
+                     when 'event'
+                       'Evento'
+                     else
+                       'Item da Agenda'
+                     end
 
-          notification_message = build_notification_message(calendar_item)
+        start_time = calendar_item.start_at.strftime('%d/%m/%Y às %H:%M')
 
-          # Tentar usar o sistema de notificações nativo do Chatwoot
-          begin
-            Notification.create!(
-              account: account,
-              user: user,
-              notification_type: 'calendar_item',
-              primary_actor_type: 'OttivCalendarItem',
-              primary_actor_id: calendar_item.id,
-              read_at: nil,
-              # Adicionar metadados se suportado
-              meta: {
-                item_type: calendar_item.item_type,
-                title: calendar_item.title,
-                start_at: calendar_item.start_at,
-                end_at: calendar_item.end_at
-              }.compact
-            )
-          rescue StandardError => e
-            # Fallback: Logar se o sistema de notificações não estiver disponível
-            Rails.logger.warn "Could not create in-app notification: #{e.message}"
-          end
-        end
-
-        def build_notification_message(calendar_item)
-          type_label = case calendar_item.item_type
-                       when 'reminder'
-                         'Lembrete'
-                       when 'event'
-                         'Evento'
-                       else
-                         'Item da Agenda'
-                       end
-
-          start_time = calendar_item.start_at.strftime('%d/%m/%Y às %H:%M')
-
-          "#{type_label}: #{calendar_item.title} - #{start_time}"
-        end
+        "#{type_label}: #{calendar_item.title} - #{start_time}"
       end
     end
+  end
 end
 
-  end

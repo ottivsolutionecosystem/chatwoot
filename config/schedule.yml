@@ -16,7 +16,7 @@ trigger_scheduled_items_job:
 # executed At every 30 minutes to auto-complete past agenda items
 ottiv_complete_past_items_job:
   cron: '*/30 * * * *'
-  class: 'Ottiv::Core::Jobs::CompletePastItemsJob'
+  class: 'Core::Jobs::CompletePastItemsJob'
   queue: ottiv_core_scheduled_jobs
 
 # executed At every minute..
