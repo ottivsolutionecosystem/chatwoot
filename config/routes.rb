@@ -35,7 +35,7 @@ Rails.application.routes.draw do
   get '/api', to: 'api#index'
   namespace :api, defaults: { format: 'json' } do
     namespace :ottiv do
-      get 'config-find', to: 'ottiv_configs#find'
+      get 'config-find', to: 'ottiv/core/controllers/api/ottiv/configs#find'
     end
     namespace :v1 do
       # ----------------------------------
@@ -121,7 +121,7 @@ Rails.application.routes.draw do
             end
             scope module: :conversations do
               # Ottiv endpoint para buscar uma mensagem específica
-              get 'messages/:message_id', to: 'ottiv_messages#show', as: :ottiv_message
+              get 'messages/:message_id', to: 'ottiv/core/controllers/api/v1/conversations/messages#show', as: :ottiv_message
               resources :messages, only: [:index, :create, :destroy, :update] do
                 member do
                   post :translate
@@ -224,69 +224,79 @@ Rails.application.routes.draw do
             end
           end
           resource :notification_settings, only: [:show, :update]
-          resource :ottiv_notification_settings, only: [:show, :update]
-          resource :ottiv_user_contact, only: [:show, :create, :update, :destroy]
-          resources :ottiv_user_contacts, only: [:index] # Listar todos os user_contacts da conta
-          resources :ottiv_notifications, only: [:create]
-          resources :ottiv_conversations, only: [] do
+          resource :ottiv_notification_settings, only: [:show, :update], controller: 'ottiv/core/controllers/api/v1/accounts/notification_settings'
+          resource :ottiv_user_contact, only: [:show, :create, :update, :destroy], controller: 'ottiv/core/controllers/api/v1/accounts/user_contacts'
+          resources :ottiv_user_contacts, only: [:index], controller: 'ottiv/core/controllers/api/v1/accounts/user_contacts'
+          resources :ottiv_notifications, only: [:create], controller: 'ottiv/core/controllers/api/v1/accounts/notifications'
+          resources :ottiv_conversations, only: [], controller: 'ottiv/core/controllers/api/v1/accounts/conversations' do
             collection do
               post :index
               get :index
               get :initial_data
             end
           end
-          resources :ottiv_search, only: [] do
+          resources :ottiv_search, only: [], controller: 'ottiv/core/controllers/api/v1/accounts/search' do
             collection do
               post :index
               get :index
             end
           end
-          resources :ottiv_calendar_items, only: [:index, :show, :create, :update, :destroy] do
+          resources :ottiv_contacts, only: [], controller: 'ottiv/core/controllers/api/v1/accounts/contacts' do
+            member do
+              get :last_conversation
+            end
+          end
+          resources :ottiv_messages, only: [], controller: 'ottiv/core/controllers/api/v1/accounts/messages' do
+            member do
+              get :conversation
+            end
+          end
+          resources :ottiv_calendar_items, only: [:index, :show, :create, :update, :destroy], controller: 'ottiv/core/controllers/api/v1/accounts/calendar_items' do
             member do
               post :complete
               post :cancel
             end
           end
-          resources :ottiv_scheduled_messages, only: [:index, :show, :create, :update, :destroy] do
+          resources :ottiv_scheduled_messages, only: [:index, :show, :create, :update, :destroy], controller: 'ottiv/core/controllers/api/v1/accounts/scheduled_messages' do
             member do
               post :send_message
             end
           end
           # Ottiv reminders (for managing reminders within account scope)
-          resources :ottiv_reminders, only: [:index, :update]
+          resources :ottiv_reminders, only: [:index, :update], controller: 'ottiv/core/controllers/api/v1/accounts/reminders'
 
           # Ottiv Portals and Costs
-          resources :ottiv_portals, only: [:index, :show, :create, :update, :destroy] do
+          resources :ottiv_portals, only: [:index, :show, :create, :update, :destroy], controller: 'ottiv/core/controllers/api/v1/accounts/portals' do
             collection do
-              get :dashboard, to: 'ottiv_portals_dashboard#index'
+              get :dashboard, to: 'ottiv/core/controllers/api/v1/accounts/portals_dashboard#index'
             end
           end
-          resources :ottiv_cost_types, only: [:index, :show, :create, :update, :destroy]
-          resources :ottiv_portal_costs, only: [:index, :show, :create, :update, :destroy]
+          resources :ottiv_cost_types, only: [:index, :show, :create, :update, :destroy], controller: 'ottiv/core/controllers/api/v1/accounts/cost_types'
+          resources :ottiv_portal_costs, only: [:index, :show, :create, :update, :destroy], controller: 'ottiv/core/controllers/api/v1/accounts/portal_costs'
 
           # Ottiv CRM endpoints
-          resources :ottiv_deals, only: [] do
+          resources :ottiv_deals, only: [], controller: 'ottiv/core/controllers/api/v1/accounts/deals' do
             collection do
               post :process
             end
           end
 
-          resources :ottiv_deal_phases, only: [:show] do
+          resources :ottiv_deal_phases, only: [:show], controller: 'ottiv/core/controllers/api/v1/accounts/deal_phases' do
             member do
               get :by_deal
             end
           end
 
-          resource :ottiv_config, only: [:show]
+          resource :ottiv_config, only: [:show], controller: 'ottiv/core/controllers/api/v1/accounts/config'
 
-          resources :ottiv_sellers, only: [] do
+          resources :ottiv_sellers, only: [], controller: 'ottiv/core/controllers/api/v1/accounts/sellers' do
             collection do
               get :queue
               post :assign
             end
           end
 
-          resources :ottiv_mentions, only: [:create]
+          resources :ottiv_mentions, only: [:create], controller: 'ottiv/core/controllers/api/v1/accounts/mentions'
 
           resources :teams do
             resources :team_members, only: [:index, :create] do
@@ -430,17 +440,17 @@ Rails.application.routes.draw do
       resource :notification_subscriptions, only: [:create, :destroy]
 
       # Ottiv custom notification subscriptions endpoints (simplified, no VAPID validation)
-      resource :ottiv_notification_subscription, only: [:create, :destroy], controller: 'ottiv_notification_subscriptions'
+      resource :ottiv_notification_subscription, only: [:create, :destroy], controller: 'ottiv/core/controllers/api/v1/notification_subscriptions'
 
       # Ottiv scheduler endpoints (administrative, no account scope required)
       # Used by scheduler to fetch pending messages and reminders from all accounts
-      resources :ottiv_scheduled_messages, only: [:index, :update] do
+      resources :ottiv_scheduled_messages, only: [:index, :update], controller: 'ottiv/core/controllers/api/v1/scheduled_messages' do
         member do
           post :send_message
           post :mark_as_failed
         end
       end
-      resources :ottiv_reminders, only: [:index, :update]
+      resources :ottiv_reminders, only: [:index, :update], controller: 'ottiv/core/controllers/api/v1/reminders'
 
       namespace :widget do
         resource :direct_uploads, only: [:create]
@@ -552,7 +562,7 @@ Rails.application.routes.draw do
             end
           end
         end
-        resources :ottiv_notification_settings, only: [:index]
+        resources :ottiv_notification_settings, only: [:index], controller: 'ottiv/core/controllers/platform/api/v1/notification_settings'
       end
     end
   end

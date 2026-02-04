@@ -1,0 +1,146 @@
+module Ottiv
+  module Core
+    module Controllers
+      module Api
+        module V1
+          module Accounts
+            class ScheduledMessagesController < ::Api::V1::Accounts::BaseController
+              before_action :set_scheduled_message, only: [:show, :update, :destroy]
+              before_action :check_authorization, only: [:show, :update, :destroy]
+
+              def index
+                @scheduled_messages = Current.account.ottiv_scheduled_messages
+                                         .includes(:creator, :conversation, :contact)
+
+                # Filter by conversation
+                @scheduled_messages = @scheduled_messages.by_conversation(params[:conversation_id]) if params[:conversation_id].present?
+
+                # Filter by status
+                @scheduled_messages = @scheduled_messages.by_status(params[:status]) if params[:status].present?
+
+                # Filter by creator
+                @scheduled_messages = @scheduled_messages.where(created_by: params[:created_by]) if params[:created_by].present?
+
+                # Filter pending (for scheduler to fetch)
+                @scheduled_messages = @scheduled_messages.pending if params[:pending] == 'true'
+
+                # Filter upcoming
+                @scheduled_messages = @scheduled_messages.upcoming if params[:upcoming] == 'true'
+
+                @scheduled_messages = @scheduled_messages.order(send_at: :asc)
+                render json: @scheduled_messages.map { |msg| scheduled_message_to_json(msg) }
+              end
+
+              def show
+                render json: scheduled_message_to_json(@scheduled_message)
+              end
+
+              def create
+                service = Ottiv::Core::Services::ScheduledMessages::CreateService.new(
+                  params: scheduled_message_params,
+                  user: Current.user,
+                  account: Current.account
+                )
+
+                @scheduled_message = service.perform
+                render json: scheduled_message_to_json(@scheduled_message), status: :created
+              rescue ArgumentError => e
+                render json: { error: e.message }, status: :unprocessable_entity
+              rescue ActiveRecord::RecordInvalid => e
+                # ✅ Capturar erros de validação do modelo e retornar detalhes
+                render json: {
+                  error: e.record.errors.full_messages.join(', '),
+                  errors: e.record.errors.as_json
+                }, status: :unprocessable_entity
+              rescue StandardError => e
+                render json: { error: e.message }, status: :unprocessable_entity
+              end
+
+              def update
+                # Only allow updating status (to cancel)
+                if params[:ottiv_scheduled_message][:status] == 'cancelled'
+                  @scheduled_message.cancel!
+                  render json: scheduled_message_to_json(@scheduled_message)
+                else
+                  render json: { error: 'Only status update to cancelled is allowed' }, status: :unprocessable_entity
+                end
+              end
+
+              def destroy
+                @scheduled_message.cancel!
+                head :no_content
+              end
+
+              def send_message
+                # Endpoint para o scheduler Node enviar a mensagem
+                @scheduled_message = Current.account.ottiv_scheduled_messages.find(params[:id])
+                
+                service = Ottiv::Core::Services::ScheduledMessages::SendService.new(@scheduled_message)
+                message = service.perform
+                
+                render json: { 
+                  success: true, 
+                  message: message,
+                  scheduled_message: @scheduled_message
+                }
+              rescue StandardError => e
+                render json: { error: e.message }, status: :unprocessable_entity
+              end
+
+              private
+
+              def set_scheduled_message
+                @scheduled_message = Current.account.ottiv_scheduled_messages.find(params[:id])
+              rescue ActiveRecord::RecordNotFound
+                render json: { error: 'Scheduled message not found' }, status: :not_found
+              end
+
+              def check_authorization
+                # User must be the creator or an admin
+                unless @scheduled_message.created_by == Current.user.id || Current.user.administrator?
+                  render json: { error: 'Unauthorized' }, status: :forbidden
+                end
+              end
+
+              def scheduled_message_params
+                params.require(:ottiv_scheduled_message).permit(
+                  :title,
+                  :message_type,
+                  :content,
+                  :media_url,
+                  :audio_url,
+                  :quick_reply_id,
+                  :conversation_id,
+                  :contact_id,
+                  :send_at,
+                  :timezone,
+                  :recurrence
+                )
+              end
+
+              # Converte scheduled_message para JSON com timestamps em Unix timestamp (segundos)
+              # Similar ao formato usado em conversations, messages e calendar_items
+              def scheduled_message_to_json(message)
+                json = message.as_json
+
+                # Converter timestamps principais para Unix timestamp (segundos)
+                json['send_at'] = message.send_at.to_i if message.send_at
+                json['sent_at'] = message.sent_at.to_i if message.sent_at
+                json['created_at'] = message.created_at.to_i
+                json['updated_at'] = message.updated_at.to_i
+
+                # Converter conversation_id de id real para display_id (consistência com API Chatwoot)
+                if message.conversation_id.present? && message.conversation
+                  json['conversation_id'] = message.conversation.display_id
+                end
+
+                json
+              end
+            end
+          end
+        end
+      end
+    end
+  end
+
+  end

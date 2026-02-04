@@ -18,6 +18,6 @@ class Api::BaseController < ApplicationController
   end
 
   def check_admin_authorization?
-    raise Pundit::NotAuthorizedError unless Current.account_user.administrator?
+    raise Pundit::NotAuthorizedError unless Current.account_user&.administrator?
   end
 end

@@ -24,6 +24,6 @@ class Api::V1::Accounts::Twitter::AuthorizationsController < Api::V1::Accounts::
   end
 
   def check_authorization
-    raise Pundit::NotAuthorizedError unless Current.account_user.administrator?
+    raise Pundit::NotAuthorizedError unless Current.account_user&.administrator?
   end
 end
