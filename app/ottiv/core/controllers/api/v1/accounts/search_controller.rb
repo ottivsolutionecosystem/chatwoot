@@ -1,4 +1,4 @@
-module Core
+module Ottiv::Core
 module Controllers
     module Api
       module V1
@@ -9,6 +9,7 @@ module Controllers
               @results = result[:results]
               @messages = result[:messages]
               @meta = result[:meta]
+              render 'api/v1/accounts/ottiv_search/index'
             rescue StandardError => e
               Rails.logger.error("❌ [OttivSearch] Erro ao buscar: #{e.class} - #{e.message}")
               Rails.logger.error(e.backtrace.join("\n"))
@@ -91,4 +92,3 @@ module Controllers
     end
   end
 end
-

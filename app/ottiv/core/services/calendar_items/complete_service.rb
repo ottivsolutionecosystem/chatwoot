@@ -1,4 +1,4 @@
-module Core
+module Ottiv::Core
 module Services
   module CalendarItems
     class CompleteService

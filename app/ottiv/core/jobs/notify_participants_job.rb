@@ -1,4 +1,4 @@
-module Core
+module Ottiv::Core
 module Jobs
   class NotifyParticipantsJob < ApplicationJob
     queue_as :ottiv_core_default

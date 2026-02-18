@@ -1,4 +1,4 @@
-module Core
+module Ottiv::Core
   module Controllers
     module Api
       module Ottiv

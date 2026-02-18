@@ -2,7 +2,7 @@
 
 # Placeholder service for Ottiv Analytics SLA Metrics
 # TODO: Implement SLA metrics calculation
-module Analytics
+module Ottiv::Analytics
 module Services
   class SlaMetricsService
     def initialize(account:, params: {})

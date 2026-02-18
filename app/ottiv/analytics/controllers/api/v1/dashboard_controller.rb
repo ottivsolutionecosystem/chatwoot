@@ -2,7 +2,7 @@
 
 # Placeholder controller for Ottiv Analytics Dashboard
 # TODO: Implement analytics dashboard functionality
-module Analytics
+module Ottiv::Analytics
 module Controllers
   module Api
     module V1

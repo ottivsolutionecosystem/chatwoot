@@ -2,7 +2,7 @@
 
 # Placeholder service for Ottiv Analytics Agents Metrics
 # TODO: Implement agents metrics calculation
-module Analytics
+module Ottiv::Analytics
 module Services
   class AgentsMetricsService
     def initialize(account:, params: {})

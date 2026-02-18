@@ -1,4 +1,4 @@
-module Core
+module Ottiv::Core
   module Controllers
     module Api
       module V1
@@ -48,6 +48,7 @@ module Core
                 
               # Pré-carregar última mensagem
               Conversation.ottiv_preload_last_messages([@conversation])
+              render 'api/v1/accounts/ottiv_messages/conversation'
             rescue ActiveRecord::RecordNotFound => e
               render json: { error: 'Mensagem não encontrada' }, status: :not_found
             rescue Pundit::NotAuthorizedError
@@ -63,4 +64,3 @@ module Core
     end
   end
 end
-

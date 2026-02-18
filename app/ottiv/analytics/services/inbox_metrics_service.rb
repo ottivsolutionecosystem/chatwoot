@@ -2,7 +2,7 @@
 
 # Placeholder service for Ottiv Analytics Inbox Metrics
 # TODO: Implement inbox metrics calculation
-module Analytics
+module Ottiv::Analytics
 module Services
   class InboxMetricsService
     def initialize(account:, params: {})

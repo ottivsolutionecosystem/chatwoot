@@ -1,0 +1,111 @@
+services:
+  base: &base
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile
+      args:
+        BUNDLE_WITHOUT: ''
+        EXECJS_RUNTIME: 'Node'
+        RAILS_ENV: 'development'
+        RAILS_SERVE_STATIC_FILES: 'false'
+    tty: true
+    stdin_open: true
+    image: chatwoot:development
+    # Use host-installed Postgres/Redis (see .env.development for host.docker.internal)
+    env_file: .env.development
+
+  base-image:
+    build:
+      context: .
+      dockerfile: ./docker/Dockerfile
+      args:
+        BUNDLE_WITHOUT: ''
+        EXECJS_RUNTIME: 'Node'
+        RAILS_ENV: 'development'
+        RAILS_SERVE_STATIC_FILES: 'false'
+    image: chatwoot:development
+
+  rails:
+    <<: *base
+    build:
+      context: .
+      dockerfile: ./docker/dockerfiles/rails.Dockerfile
+    image: chatwoot-rails:development
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./:/app:delegated
+      - node_modules:/app/node_modules
+      - packs:/app/public/packs
+      - cache:/app/tmp/cache
+      - bundle:/usr/local/bundle
+    depends_on:
+      - base-image
+      - vite
+      - mailhog
+      - sidekiq
+    ports:
+      - 3000:3000
+    env_file: .env.development
+    environment:
+      - VITE_DEV_SERVER_HOST=vite
+      - NODE_ENV=development
+      - RAILS_ENV=development
+    entrypoint: docker/entrypoints/rails.sh
+    command: ["bundle", "exec", "rails", "s", "-p", "3000", "-b", "0.0.0.0"]
+
+  sidekiq:
+    <<: *base
+    image: chatwoot-rails:development
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./:/app:delegated
+      - node_modules:/app/node_modules
+      - packs:/app/public/packs
+      - cache:/app/tmp/cache
+      - bundle:/usr/local/bundle
+    depends_on:
+      - mailhog
+    environment:
+      - NODE_ENV=development
+      - RAILS_ENV=development
+    command: ["bundle", "exec", "sidekiq", "-C", "config/sidekiq.yml"]
+
+  vite:
+    <<: *base
+    build:
+      context: .
+      dockerfile: ./docker/dockerfiles/vite.Dockerfile
+    image: chatwoot-vite:development
+    depends_on:
+      - base-image
+    volumes:
+      - ./:/app:delegated
+      - node_modules:/app/node_modules
+      - packs:/app/public/packs
+      - cache:/app/tmp/cache
+      - bundle:/usr/local/bundle
+    ports:
+      - "3036:3036" # Vite dev server
+    environment:
+      - VITE_DEV_SERVER_HOST=0.0.0.0
+      - VITE_DEV_SERVER_PORT=3036
+      - VITE_HMR_HOST=localhost
+      - VITE_HMR_PORT=3036
+      - NODE_ENV=development
+      - RAILS_ENV=development
+    entrypoint: docker/entrypoints/vite.sh
+    command: bin/vite dev
+
+  mailhog:
+    image: mailhog/mailhog
+    ports:
+      - 1025:1025
+      - 8025:8025
+
+volumes:
+  packs:
+  node_modules:
+  cache:
+  bundle:

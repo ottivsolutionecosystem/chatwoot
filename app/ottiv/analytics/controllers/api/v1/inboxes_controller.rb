@@ -2,7 +2,7 @@
 
 # Placeholder controller for Ottiv Analytics Inboxes
 # TODO: Implement inboxes analytics functionality
-module Analytics
+module Ottiv::Analytics
 module Controllers
   module Api
     module V1

@@ -1,4 +1,4 @@
-module Core
+module Ottiv::Core
 module Jobs
   class CompletePastItemsJob < ApplicationJob
     queue_as :ottiv_core_low

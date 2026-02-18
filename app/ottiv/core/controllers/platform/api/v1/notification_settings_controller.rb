@@ -1,4 +1,4 @@
-module Core
+module Ottiv::Core
   module Controllers
     module Platform
       module Api
@@ -23,6 +23,7 @@ module Core
                                   ]
                                 }
                               )
+              render 'platform/api/v1/ottiv_notification_settings/index'
             end
           end
         end
@@ -30,4 +31,3 @@ module Core
     end
   end
 end
-

@@ -1,4 +1,4 @@
-module Core
+module Ottiv::Core
   module Controllers
     module Api
       module V1
@@ -9,6 +9,7 @@ module Core
               @conversations = result[:conversations]
               @conversations_count = result[:count]
               @count_filter = result[:filtered_count] # Total filtrado sem paginação
+              render 'api/v1/accounts/ottiv_conversations/index'
             rescue StandardError => e
               Rails.logger.error("❌ [OttivConversations] Erro ao buscar conversas: #{e.class} - #{e.message}")
               Rails.logger.error(e.backtrace.join("\n"))
@@ -56,6 +57,7 @@ module Core
               @meta_counts = mine_result[:count]
               @all_count = all_result&.dig(:count, :all_count) || @meta_counts[:all_count]
               @mention_count = mention_result[:count][:all_count]
+              render 'api/v1/accounts/ottiv_conversations/initial_data'
             rescue StandardError => e
               Rails.logger.error("❌ [OttivConversations] Erro ao buscar initial_data: #{e.class} - #{e.message}")
               Rails.logger.error(e.backtrace.join("\n"))
@@ -147,4 +149,3 @@ module Core
     end
   end
 end
-

@@ -1,4 +1,4 @@
-module Core
+module Ottiv::Core
   module Controllers
     module Api
       module V1
@@ -6,12 +6,14 @@ module Core
           class NotificationSettingsController < ::Api::V1::Accounts::BaseController
             before_action :set_user, :load_notification_setting
 
-            def show; end
+            def show
+              render 'api/v1/accounts/ottiv_notification_settings/show'
+            end
 
             def update
               update_flags
               @notification_setting.save!
-              render action: 'show'
+              render 'api/v1/accounts/ottiv_notification_settings/show'
             end
 
             private
@@ -63,4 +65,3 @@ module Core
     end
   end
 end
-

@@ -2,7 +2,7 @@
 
 # Placeholder query for Ottiv Analytics Agents Metrics
 # TODO: Implement agents metrics queries
-module Analytics
+module Ottiv::Analytics
 module Queries
   class AgentsMetricsQuery
     def initialize(account:, params: {})

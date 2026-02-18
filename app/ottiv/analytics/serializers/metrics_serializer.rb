@@ -2,7 +2,7 @@
 
 # Placeholder serializer for Ottiv Analytics Metrics
 # TODO: Implement metrics serialization
-module Analytics
+module Ottiv::Analytics
 module Serializers
   class MetricsSerializer
     def initialize(metrics)

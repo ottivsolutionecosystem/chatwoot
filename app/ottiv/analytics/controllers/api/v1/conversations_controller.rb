@@ -2,7 +2,7 @@
 
 # Placeholder controller for Ottiv Analytics Conversations
 # TODO: Implement conversations analytics functionality
-module Analytics
+module Ottiv::Analytics
 module Controllers
   module Api
     module V1

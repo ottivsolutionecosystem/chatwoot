@@ -2,7 +2,7 @@
 
 # Placeholder query for Ottiv Analytics Inbox Metrics
 # TODO: Implement inbox metrics queries
-module Analytics
+module Ottiv::Analytics
 module Queries
   class InboxMetricsQuery
     def initialize(account:, params: {})

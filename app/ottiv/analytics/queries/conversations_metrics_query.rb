@@ -2,7 +2,7 @@
 
 # Placeholder query for Ottiv Analytics Conversations Metrics
 # TODO: Implement conversations metrics queries
-module Analytics
+module Ottiv::Analytics
 module Queries
   class ConversationsMetricsQuery
     def initialize(account:, params: {})

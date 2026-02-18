@@ -1,4 +1,4 @@
-module Core
+module Ottiv::Core
   module Controllers
     module Api
       module V1
@@ -7,7 +7,7 @@ module Core
             before_action :set_message, only: [:show]
 
             def show
-              # Renderiza a mensagem usando a view show.json.jbuilder
+              render 'api/v1/accounts/conversations/ottiv_messages/show'
             end
 
             private
@@ -23,4 +23,3 @@ module Core
     end
   end
 end
-

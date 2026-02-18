@@ -48,6 +48,7 @@ module Chatwoot
     config.autoload_paths += %W[
       #{config.root}/app/ottiv
     ]
+    config.eager_load_paths << Rails.root.join('app/ottiv')
     # Add enterprise views to the view paths
     config.paths['app/views'].unshift('enterprise/app/views')
 

@@ -1,4 +1,4 @@
-module Core
+module Ottiv::Core
 module Services
   class SearchService
       pattr_initialize [:current_user!, :current_account!, :params!]

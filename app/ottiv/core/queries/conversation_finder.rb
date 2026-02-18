@@ -1,4 +1,4 @@
-module Core
+module Ottiv::Core
 module Queries
   class ConversationFinder < ConversationFinder
       def initialize(current_user, params)

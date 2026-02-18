@@ -2,7 +2,7 @@
 
 # Placeholder job for Ottiv Analytics Refresh Metrics
 # TODO: Implement metrics refresh functionality
-module Analytics
+module Ottiv::Analytics
 module Jobs
   class RefreshMetricsJob < ApplicationJob
     queue_as :ottiv_analytics_default

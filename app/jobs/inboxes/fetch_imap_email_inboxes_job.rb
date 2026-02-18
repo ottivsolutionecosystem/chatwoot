@@ -5,6 +5,7 @@ class Inboxes::FetchImapEmailInboxesJob < ApplicationJob
   def perform
     email_inboxes = Inbox.where(channel_type: 'Channel::Email')
     email_inboxes.find_each(batch_size: 100) do |inbox|
+      next if inbox.channel.nil?
       ::Inboxes::FetchImapEmailsJob.perform_later(inbox.channel) if should_fetch_emails?(inbox)
     end
   end
@@ -13,6 +14,7 @@ class Inboxes::FetchImapEmailInboxesJob < ApplicationJob
 
   def should_fetch_emails?(inbox)
     return false if inbox.account.suspended?
+    return false if inbox.channel.nil?
     return false unless inbox.channel.imap_enabled
     return false if inbox.channel.reauthorization_required?
 

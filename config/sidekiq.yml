@@ -19,10 +19,13 @@
   - high
   - medium
   - default
+  - ottiv_core_default
   - mailers
   - action_mailbox_routing
   - low
+  - ottiv_core_low
   - scheduled_jobs
+  - ottiv_core_scheduled_jobs
   - deferred
   - purgable
   - housekeeping

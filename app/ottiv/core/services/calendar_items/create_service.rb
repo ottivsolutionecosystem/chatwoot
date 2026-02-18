@@ -1,4 +1,4 @@
-module Core
+module Ottiv::Core
 module Services
   module CalendarItems
     class CreateService
@@ -21,7 +21,7 @@ module Services
             create_duplicate_items_for_participants(calendar_item)
 
             # Notificar participantes após criação (notifica o registro original)
-            Ottiv::Core::Jobs::NotifyParticipantsJob.perform_later(calendar_item.id)
+            Core::Jobs::NotifyParticipantsJob.perform_later(calendar_item.id)
 
             calendar_item
           end
@@ -144,7 +144,7 @@ module Services
             end
               
             # Notificar o participante sobre seu registro duplicado
-            Ottiv::Core::Jobs::NotifyParticipantsJob.perform_later(duplicate.id)
+            Core::Jobs::NotifyParticipantsJob.perform_later(duplicate.id)
               
             Rails.logger.info "Created duplicate calendar_item #{duplicate.id} for participant #{participant_user_id}"
           end
@@ -202,4 +202,3 @@ module Services
     end
   end
 end
-

@@ -49,7 +49,16 @@
 #  index_conversations_on_waiting_since               (waiting_since)
 #
 
+# Garantir que os namespaces Ottiv estejam carregados
+require Rails.root.join('app/ottiv')
+require Rails.root.join('app/ottiv/core')
+require Rails.root.join('app/ottiv/core/concerns')
+require Rails.root.join('app/ottiv/core/concerns/conversation_helpers')
+
 class Conversation < ApplicationRecord
+  # Require explícito para garantir que o módulo seja carregado
+  require Rails.root.join('app/ottiv/core/concerns/conversation_helpers')
+  
   include Labelable
   include LlmFormattable
   include AssignmentHandler
@@ -59,7 +68,7 @@ class Conversation < ApplicationRecord
   include SortHandler
   include PushDataHelper
   include ConversationMuteHelpers
-  include Core::Concerns::ConversationHelpers
+  include Ottiv::Core::Concerns::ConversationHelpers
 
   validates :account_id, presence: true
   validates :inbox_id, presence: true
