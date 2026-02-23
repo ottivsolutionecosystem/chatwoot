@@ -16,5 +16,3 @@ module Serializers
   end
 end
 end
-
-end

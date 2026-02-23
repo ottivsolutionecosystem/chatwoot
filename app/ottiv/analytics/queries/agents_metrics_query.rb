@@ -17,5 +17,3 @@ module Queries
   end
 end
 end
-
-end
