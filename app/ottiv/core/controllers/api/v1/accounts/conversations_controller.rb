@@ -29,13 +29,13 @@ module Ottiv::Core
               }
 
               # Buscar conversas "mine" (atribuídas ao usuário atual)
-              mine_result = Core::Queries::ConversationFinder.new(
+              mine_result = ::Ottiv::Core::Queries::ConversationFinder.new(
                 Current.user,
                 base_params.merge(assignee_type: 'me')
               ).perform
 
               # Buscar conversas com menção
-              mention_result = Core::Queries::ConversationFinder.new(
+              mention_result = ::Ottiv::Core::Queries::ConversationFinder.new(
                 Current.user,
                 base_params.merge(assignee_type: 'all', conversation_type: 'mention')
               ).perform
@@ -43,7 +43,7 @@ module Ottiv::Core
               # Buscar todas as conversas (apenas para administradores)
               all_result = nil
               if @is_administrator
-                all_result = Core::Queries::ConversationFinder.new(
+                all_result = ::Ottiv::Core::Queries::ConversationFinder.new(
                   Current.user,
                   base_params
                 ).perform
@@ -67,7 +67,7 @@ module Ottiv::Core
             private
 
             def ottiv_conversation_finder
-              @ottiv_conversation_finder ||= Core::Queries::ConversationFinder.new(Current.user, ottiv_params)
+              @ottiv_conversation_finder ||= ::Ottiv::Core::Queries::ConversationFinder.new(Current.user, ottiv_params)
             end
 
             def ottiv_params
@@ -89,6 +89,7 @@ module Ottiv::Core
               # Permitir arrays também nos query params
               query_params = params.permit(
                 :page, :sort_by, :status, :assignee_type, :conversation_type, :q, :searchTerm, :updated_within,
+                :date_from, :date_to,
                 inbox_ids: [], label_titles: [], assignee_ids: [], include_unassigned: []
               ).to_h
 
@@ -135,6 +136,15 @@ module Ottiv::Core
               # Validar que label_titles são strings se fornecidos
               if params[:label_titles].present? && params[:label_titles].is_a?(Array)
                 params[:label_titles] = params[:label_titles].map(&:to_s).compact.reject(&:blank?)
+              end
+
+              # Validar date_from e date_to são números (timestamps em segundos)
+              if params[:date_from].present?
+                params[:date_from] = params[:date_from].to_i
+              end
+
+              if params[:date_to].present?
+                params[:date_to] = params[:date_to].to_i
               end
 
               # Validar page é um número positivo

@@ -21,7 +21,7 @@ module Ottiv::Core
           def send_message
             @scheduled_message = OttivScheduledMessage.find(params[:id])
 
-            service = Core::Services::ScheduledMessages::SendService.new(@scheduled_message)
+            service = ::Ottiv::Core::Services::ScheduledMessages::SendService.new(@scheduled_message)
             message = service.perform
 
             render json: {

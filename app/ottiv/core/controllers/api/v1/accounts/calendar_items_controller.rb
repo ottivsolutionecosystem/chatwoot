@@ -44,7 +44,7 @@ module Ottiv::Core
             end
 
             def create
-              service = Core::Services::CalendarItems::CreateService.new(
+              service = ::Ottiv::Core::Services::CalendarItems::CreateService.new(
                 params: calendar_item_params,
                 user: Current.user,
                 account: Current.account
@@ -57,7 +57,7 @@ module Ottiv::Core
             end
 
             def update
-              service = Core::Services::CalendarItems::UpdateService.new(
+              service = ::Ottiv::Core::Services::CalendarItems::UpdateService.new(
                 calendar_item: @calendar_item,
                 params: calendar_item_params
               )
@@ -74,7 +74,7 @@ module Ottiv::Core
             end
 
             def complete
-              service = Core::Services::CalendarItems::CompleteService.new(
+              service = ::Ottiv::Core::Services::CalendarItems::CompleteService.new(
                 calendar_item: @calendar_item
               )
 
@@ -85,7 +85,7 @@ module Ottiv::Core
             end
 
             def cancel
-              service = Core::Services::CalendarItems::CancelService.new(
+              service = ::Ottiv::Core::Services::CalendarItems::CancelService.new(
                 calendar_item: @calendar_item
               )
 

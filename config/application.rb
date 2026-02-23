@@ -44,11 +44,9 @@ module Chatwoot
     # rubocop:disable Rails/FilePath
     config.eager_load_paths += Dir["#{Rails.root}/enterprise/app/**"]
     # rubocop:enable Rails/FilePath
-    # Ottiv namespace autoloading
-    config.autoload_paths += %W[
-      #{config.root}/app/ottiv
-    ]
-    config.eager_load_paths << Rails.root.join('app/ottiv')
+    # Ottiv namespace autoloading é configurado via initializer (config/initializers/ottiv_autoload.rb)
+    # usando Zeitwerk push_dir com namespace: Ottiv para que app/ottiv/core/... resolva
+    # para Ottiv::Core::... (e não Core::... como aconteceria com autoload_paths simples)
     # Add enterprise views to the view paths
     config.paths['app/views'].unshift('enterprise/app/views')
 

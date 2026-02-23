@@ -158,6 +158,18 @@ module Services
           end
         end
 
+        # Aplicar filtro de data (last_activity_at)
+        if params[:date_from].present?
+          from_time = Time.zone.at(params[:date_from].to_i)
+          query = query.where('conversations.last_activity_at >= ?', from_time)
+        end
+
+        if params[:date_to].present?
+          # Para date_to, incluir todo o dia (até 23:59:59.999)
+          to_time = Time.zone.at(params[:date_to].to_i).end_of_day
+          query = query.where('conversations.last_activity_at <= ?', to_time)
+        end
+
         # Aplicar ottiv_with_list_data DEPOIS de todos os joins e filtros
         # mas ANTES do distinct para evitar conflitos com SELECT
         query = query.ottiv_with_list_data

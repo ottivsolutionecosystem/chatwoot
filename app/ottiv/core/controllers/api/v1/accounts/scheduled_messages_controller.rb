@@ -35,7 +35,7 @@ module Ottiv::Core
             end
 
             def create
-              service = Core::Services::ScheduledMessages::CreateService.new(
+              service = ::Ottiv::Core::Services::ScheduledMessages::CreateService.new(
                 params: scheduled_message_params,
                 user: Current.user,
                 account: Current.account
@@ -74,7 +74,7 @@ module Ottiv::Core
               # Endpoint para o scheduler Node enviar a mensagem
               @scheduled_message = Current.account.ottiv_scheduled_messages.find(params[:id])
                 
-              service = Core::Services::ScheduledMessages::SendService.new(@scheduled_message)
+              service = ::Ottiv::Core::Services::ScheduledMessages::SendService.new(@scheduled_message)
               message = service.perform
                 
               render json: { 

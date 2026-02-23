@@ -42,6 +42,7 @@ module Queries
         filter_by_team
         filter_by_labels
         filter_by_assignee_ids # Novo filtro para múltiplos assignees
+        filter_by_date # Filtro por data (last_activity_at)
         filter_by_query
         filter_by_source_id
       end
@@ -119,6 +120,26 @@ module Queries
         elsif include_unassigned
           # Apenas não atribuídas
           @conversations = @conversations.where("assignee_id IS NULL OR assignee_id = 0")
+        end
+      end
+
+      # Método para filtrar por data (last_activity_at)
+      def filter_by_date
+        date_from = params[:date_from]
+        date_to = params[:date_to]
+
+        return unless date_from.present? || date_to.present?
+
+        # Converter timestamps (em segundos) para Time objects
+        if date_from.present?
+          from_time = Time.zone.at(date_from.to_i)
+          @conversations = @conversations.where('conversations.last_activity_at >= ?', from_time)
+        end
+
+        if date_to.present?
+          # Para date_to, incluir todo o dia (até 23:59:59.999)
+          to_time = Time.zone.at(date_to.to_i).end_of_day
+          @conversations = @conversations.where('conversations.last_activity_at <= ?', to_time)
         end
       end
 

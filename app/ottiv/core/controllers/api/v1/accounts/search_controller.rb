@@ -19,7 +19,7 @@ module Controllers
             private
 
             def ottiv_search_service
-              @ottiv_search_service ||= Core::Services::SearchService.new(
+              @ottiv_search_service ||= ::Ottiv::Core::Services::SearchService.new(
                 current_user: Current.user,
                 current_account: Current.account,
                 params: ottiv_search_params
