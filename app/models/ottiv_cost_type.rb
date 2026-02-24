@@ -13,7 +13,7 @@
 
 class OttivCostType < ApplicationRecord
   belongs_to :account
-  has_many :ottiv_portal_costs, dependent: :destroy_async
+  has_many :ottiv_portal_costs, foreign_key: :cost_type_id, dependent: :destroy_async
 
   enum category: { fixed: 0, variable: 1 }
 

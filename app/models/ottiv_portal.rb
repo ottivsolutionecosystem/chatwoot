@@ -14,7 +14,7 @@
 
 class OttivPortal < ApplicationRecord
   belongs_to :account
-  has_many :ottiv_portal_costs, dependent: :destroy_async
+  has_many :ottiv_portal_costs, foreign_key: :portal_id, dependent: :destroy_async
 
   validates :name, presence: true, length: { maximum: 255 }
   validates :slug, presence: true, length: { maximum: 255 },
