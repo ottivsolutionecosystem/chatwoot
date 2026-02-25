@@ -23,6 +23,11 @@
 module Ottiv
   module Core
     module Controllers
+      module Platform
+        module Api
+          module V1; end
+        end
+      end
       module Api
         module V1
           module Accounts; end
