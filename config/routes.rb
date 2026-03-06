@@ -474,7 +474,9 @@ Rails.application.routes.draw do
             end
           end
         end
-        resources :ottiv_notification_settings, only: [:index], controller: 'ottiv/core/controllers/platform/api/v1/notification_settings'
+        resources :ottiv_notification_settings,
+                  only: [:index],
+                  controller: '/ottiv/core/controllers/platform/api/v1/notification_settings'
       end
     end
   end
@@ -659,6 +661,9 @@ Rails.application.routes.draw do
 
       resources :ottiv_mentions, only: [:create],
                 controller: 'ottiv/core/controllers/api/v1/accounts/mentions'
+
+      resources :ottiv_sources, only: [:index],
+                controller: 'ottiv/core/controllers/api/v1/accounts/sources'
     end
   end
 

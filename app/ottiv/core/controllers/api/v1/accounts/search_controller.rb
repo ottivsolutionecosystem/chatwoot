@@ -43,8 +43,8 @@ module Controllers
 
               # Query params - incluir filtros
               query_params = params.permit(
-                :q, :searchTerm, :page, :status, :conversation_type, :assignee_type, :sort_by,
-                inbox_ids: [], label_titles: [], assignee_ids: [], include_unassigned: []
+                :q, :searchTerm, :page, :status, :conversation_type, :assignee_type, :sort_by, :date_from, :date_to,
+                inbox_ids: [], label_titles: [], priorities: [], assignee_ids: [], include_unassigned: []
               ).to_h
 
               # Merge body e query params
@@ -65,7 +65,22 @@ module Controllers
               # Normalizar arrays
               merged_params[:inbox_ids] = normalize_array(merged_params[:inbox_ids]) if merged_params.key?(:inbox_ids)
               merged_params[:label_titles] = normalize_array(merged_params[:label_titles]) if merged_params.key?(:label_titles)
+              merged_params[:priorities] = normalize_array(merged_params[:priorities]) if merged_params.key?(:priorities)
               merged_params[:assignee_ids] = normalize_array(merged_params[:assignee_ids]) if merged_params.key?(:assignee_ids)
+
+              # Validar prioridades permitidas
+              if merged_params.key?(:priorities)
+                allowed_priorities = %w[low medium high urgent]
+                merged_params[:priorities] = merged_params[:priorities].map(&:to_s).compact.select { |priority| allowed_priorities.include?(priority) }
+              end
+
+              # Normalizar datas para inteiro (timestamp em segundos)
+              if merged_params[:date_from].present?
+                merged_params[:date_from] = merged_params[:date_from].to_i
+              end
+              if merged_params[:date_to].present?
+                merged_params[:date_to] = merged_params[:date_to].to_i
+              end
 
               # Normalizar include_unassigned para boolean
               if merged_params.key?(:include_unassigned)

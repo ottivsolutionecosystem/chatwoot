@@ -15,6 +15,9 @@ module Services
           build_contact_result(contact)
         end.compact
 
+        # Ordenar contatos por last_activity_at_desc (conversa mais recente primeiro)
+        results = sort_results_by_activity(results)
+
         # Buscar mensagens separadamente que correspondem ao termo
         messages = find_matching_messages(search_query)
 
@@ -158,6 +161,15 @@ module Services
           end
         end
 
+        # Aplicar filtro de prioridades
+        if params[:priorities].present? && params[:priorities].is_a?(Array) && params[:priorities].any?
+          allowed_priorities = %w[low medium high urgent]
+          priorities_array = params[:priorities].map(&:to_s).compact.select { |priority| allowed_priorities.include?(priority) }
+          if priorities_array.any?
+            query = query.where(priority: priorities_array)
+          end
+        end
+
         # Aplicar filtro de data (last_activity_at)
         if params[:date_from].present?
           from_time = Time.zone.at(params[:date_from].to_i)
@@ -244,6 +256,26 @@ module Services
               status: conversation.status
             } : nil
           }
+        end
+      end
+
+      def sort_results_by_activity(results)
+        sort_by = params[:sort_by] || 'last_activity_at_desc'
+        case sort_by
+        when 'last_activity_at_desc'
+          results.sort do |a, b|
+            max_a = a[:conversations].map { |c| c[:last_activity_at] }.max || 0
+            max_b = b[:conversations].map { |c| c[:last_activity_at] }.max || 0
+            max_b <=> max_a
+          end
+        when 'last_activity_at_asc'
+          results.sort do |a, b|
+            max_a = a[:conversations].map { |c| c[:last_activity_at] }.max || 0
+            max_b = b[:conversations].map { |c| c[:last_activity_at] }.max || 0
+            max_a <=> max_b
+          end
+        else
+          results
         end
       end
 

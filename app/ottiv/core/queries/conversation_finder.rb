@@ -41,6 +41,7 @@ module Queries
         filter_by_status unless params[:q] || params[:searchTerm] # Não filtrar por status se há busca ativa
         filter_by_team
         filter_by_labels
+        filter_by_priorities
         filter_by_assignee_ids # Novo filtro para múltiplos assignees
         filter_by_date # Filtro por data (last_activity_at)
         filter_by_query
@@ -85,6 +86,17 @@ module Queries
         label_titles_array = Array(label_titles)
         # Usar distinct para evitar duplicatas do join com taggings
         @conversations = @conversations.tagged_with(label_titles_array, any: true).distinct
+      end
+
+      def filter_by_priorities
+        priorities = params[:priorities]
+        return unless priorities.present?
+
+        allowed_priorities = %w[low medium high urgent]
+        priorities_array = Array(priorities).map(&:to_s).compact.select { |priority| allowed_priorities.include?(priority) }
+        return if priorities_array.empty?
+
+        @conversations = @conversations.where(priority: priorities_array)
       end
 
       # Método para filtrar por múltiplos assignee_ids

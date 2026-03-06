@@ -90,7 +90,7 @@ module Ottiv::Core
               query_params = params.permit(
                 :page, :sort_by, :status, :assignee_type, :conversation_type, :q, :searchTerm, :updated_within,
                 :date_from, :date_to,
-                inbox_ids: [], label_titles: [], assignee_ids: [], include_unassigned: []
+                inbox_ids: [], label_titles: [], priorities: [], assignee_ids: [], include_unassigned: []
               ).to_h
 
               # Converter body_params para hash simples antes de fazer merge
@@ -105,6 +105,7 @@ module Ottiv::Core
               # Validar e normalizar arrays (apenas se presentes)
               merged_params[:inbox_ids] = normalize_array(merged_params[:inbox_ids]) if merged_params.key?(:inbox_ids)
               merged_params[:label_titles] = normalize_array(merged_params[:label_titles]) if merged_params.key?(:label_titles)
+              merged_params[:priorities] = normalize_array(merged_params[:priorities]) if merged_params.key?(:priorities)
               merged_params[:assignee_ids] = normalize_array(merged_params[:assignee_ids]) if merged_params.key?(:assignee_ids)
 
               # Validar tipos
@@ -136,6 +137,12 @@ module Ottiv::Core
               # Validar que label_titles são strings se fornecidos
               if params[:label_titles].present? && params[:label_titles].is_a?(Array)
                 params[:label_titles] = params[:label_titles].map(&:to_s).compact.reject(&:blank?)
+              end
+
+              # Validar prioridades permitidas
+              if params[:priorities].present? && params[:priorities].is_a?(Array)
+                allowed_priorities = %w[low medium high urgent]
+                params[:priorities] = params[:priorities].map(&:to_s).compact.select { |priority| allowed_priorities.include?(priority) }
               end
 
               # Validar date_from e date_to são números (timestamps em segundos)
