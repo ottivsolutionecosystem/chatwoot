@@ -651,6 +651,19 @@ Rails.application.routes.draw do
       resource :ottiv_config, only: [:show],
                controller: 'ottiv/core/controllers/api/v1/accounts/config'
 
+      resources :ottiv_skills, only: [:index, :show, :create, :update, :destroy],
+                controller: 'ottiv/core/controllers/api/v1/accounts/skills'
+
+      resources :ottiv_skill_agents, only: [:index, :show, :create, :update, :destroy],
+                controller: 'ottiv/core/controllers/api/v1/accounts/skill_agents'
+
+      resource :ottiv_skill_queue, only: [],
+               controller: 'ottiv/core/controllers/api/v1/accounts/skill_queue' do
+        collection do
+          post :next
+        end
+      end
+
       resources :ottiv_sellers, only: [],
                 controller: 'ottiv/core/controllers/api/v1/accounts/sellers' do
         collection do
