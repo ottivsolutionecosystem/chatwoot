@@ -83,7 +83,8 @@ x-variaveis:
 
     ## Armazenamento Minio ou Amazon S3 (pode usar bucket diferente para teste)
     ACTIVE_STORAGE_SERVICE: "s3_compatible"
-    STORAGE_BUCKET_NAME: "chatwoot_dev"  # Bucket separado para testes
+    # Nome do bucket: só minúsculas, números e hífen (underscore inválido → InvalidBucketName no MinIO/S3)
+    STORAGE_BUCKET_NAME: "chatwoot-dev"
     STORAGE_ACCESS_KEY_ID: "9VR21qq14FZtSDUtEZIr"
     STORAGE_SECRET_ACCESS_KEY: "LEeUx80dJSqWsMw8ccxAH9GfPhc6JWaDDB5VVibu"
     STORAGE_REGION: "us-east-1"

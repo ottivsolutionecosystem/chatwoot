@@ -1,0 +1,81 @@
+{
+  "rules": [
+    "Sempre responda em português brasileiro.",
+    "Ao implementar ou alterar endpoints Ottiv, respeite a separação multi-tenant via account: veja a seção ottiv_tenant_routing neste arquivo.",
+    "Rotas de negócio do CRM devem ficar dentro de scope '/accounts/:account_id' em config/routes.rb (prefixo /api/ottiv/v1/accounts/:account_id/...).",
+    "Controllers sob esse escopo devem herdar de ::Api::V1::Accounts::BaseController (ou base equivalente já usada em app/ottiv/core/controllers/api/v1/accounts/) para que EnsureCurrentAccountHelper preencha Current.account a partir de params[:account_id] e valide acesso do usuário/bot.",
+    "Toda consulta e persistência deve ser limitada ao tenant: use Current.account.id, associações via Current.account ou garanta account_id nas queries; nunca retorne ou altere dados de outro account.",
+    "Exceções documentadas: (1) webhook/endpoint global pode usar header x-account como em ConversationsLabelsController; (2) rotas administrativas fora de /accounts/:account_id só são aceitáveis quando justificadas (scheduler) e o registro já carrega account_id — ainda assim filtre por account quando a operação for por tenant.",
+    "Antes de criar rota nova: copie o padrão em config/routes.rb (resources :ottiv_* com controller: 'ottiv/core/controllers/...', only:, member/collection).",
+    "Lógica pesada: app/ottiv/core/services/ ou app/ottiv/core/queries/ (ou analytics equivalente), não só controller.",
+    "Modelos ActiveRecord Ottiv: app/models/ottiv_*.rb; siga convenções dos modelos existentes.",
+    "Autoload Zeitwerk: novos arquivos em app/ottiv/... com namespace Ottiv; ver config/initializers/ottiv_autoload.rb.",
+    "Jobs Sidekiq: filas ottiv_* em config/sidekiq.yml quando aplicável."
+  ],
+  "docs": [
+    "Backend Chatwoot fork Ottiv: APIs em /api/ottiv/v1 (JSON), autenticação alinhada ao Chatwoot (api_access_token / Devise).",
+    "Multi-tenant: Account via URL params[:account_id] no escopo /accounts/:account_id; EnsureCurrentAccountHelper define Current.account e autoriza usuário ou bot.",
+    "Estrutura: app/ottiv/core/ (API CRM, webhooks, platform), app/ottiv/analytics/ (métricas quando expostas por rota).",
+    "Modelos: app/models/ottiv_*.rb.",
+    "Rotas: config/routes.rb — bloco scope '/api/ottiv/v1' com sub-bloco scope '/accounts/:account_id' para a maioria dos recursos ottiv_*."
+  ],
+  "ottiv_tenant_routing": {
+    "description": "Como o tenant (account) é definido nas rotas Ottiv — obrigatório entender antes de implementar endpoint.",
+    "url_prefix": "/api/ottiv/v1",
+    "patterns": [
+      {
+        "name": "account_scope_url",
+        "when": "Maioria dos endpoints CRM (padrão)",
+        "routes": "scope '/accounts/:account_id' dentro de scope '/api/ottiv/v1' em config/routes.rb",
+        "url_shape": "/api/ottiv/v1/accounts/:account_id/ottiv_<recurso>/...",
+        "tenant_source": "params[:account_id] na URL",
+        "controller_base": "::Api::V1::Accounts::BaseController (before_action :current_account + EnsureCurrentAccountHelper)",
+        "runtime": "Current.account é definido e o acesso do current_user ou bot à account é validado",
+        "rule": "Novos endpoints voltados ao produto/usuário devem seguir este padrão."
+      },
+      {
+        "name": "header_account",
+        "when": "Endpoint global sem :account_id na URL (ex.: webhook)",
+        "example": "get ottiv_conversations_labels → Ottiv::Core::Controllers::Api::V1::Webhook::ConversationsLabelsController",
+        "tenant_source": "Header HTTP x-account (ou HTTP_X_ACCOUNT)",
+        "rule": "Só use se houver motivo para não colocar :account_id na URL; documente no controller e valide account existente antes de Current.account = account."
+      },
+      {
+        "name": "admin_cross_account",
+        "when": "Scheduler interno / rotas sem scope de account",
+        "example": "resources :ottiv_scheduled_messages com controller api/v1/scheduled_messages (admin)",
+        "tenant_source": "Não há Current.account global; cada registro (ex.: OttivScheduledMessage) possui account_id",
+        "rule": "Evite vazar dados entre accounts; ao manipular um registro, confira account_id quando relevante e não exponha listagens sem autenticação adequada."
+      }
+    ],
+    "reference_files": [
+      "config/routes.rb (comentários e blocos OTTIV API)",
+      "app/controllers/concerns/ensure_current_account_helper.rb",
+      "app/controllers/api/v1/accounts/base_controller.rb",
+      "app/ottiv/core/controllers/api/v1/webhook/conversations_labels_controller.rb"
+    ]
+  },
+  "ottiv_api_implementation": {
+    "description": "Checklist para pedidos do tipo \"implemente endpoint ottiv ...\"",
+    "routes_file": "config/routes.rb",
+    "key_paths": {
+      "controllers_accounts": "app/ottiv/core/controllers/api/v1/accounts/",
+      "controllers_other": "app/ottiv/core/controllers/api/v1/",
+      "controllers_analytics": "app/ottiv/analytics/controllers/",
+      "services_core": "app/ottiv/core/services/",
+      "queries_core": "app/ottiv/core/queries/",
+      "jobs_core": "app/ottiv/core/jobs/",
+      "concerns_core": "app/ottiv/core/concerns/",
+      "models": "app/models/",
+      "tenant_concern": "app/controllers/concerns/ensure_current_account_helper.rb",
+      "initializers_ottiv": "config/initializers/ottiv_autoload.rb"
+    },
+    "checklist": [
+      "1. Definir se o endpoint é por-tenant (URL /accounts/:account_id) ou exceção (header/admin).",
+      "2. Registrar rota no bloco correto de config/routes.rb; manter prefixo ottiv_* e string de controller consistente.",
+      "3. Herdar controller base adequado; garantir Current.account ou account_id explícito em cada query.",
+      "4. Model/migration em app/models e db/migrate se necessário, sempre com escopo por account quando for dado de tenant.",
+      "5. Alinhar JSON e status HTTP aos endpoints vizinhos."
+    ]
+  }
+}

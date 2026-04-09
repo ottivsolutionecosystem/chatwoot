@@ -105,6 +105,7 @@ class Account < ApplicationRecord
   has_many :ottiv_cost_types, dependent: :destroy_async
   has_many :ottiv_skills, dependent: :destroy_async
   has_many :ottiv_skill_agents, dependent: :destroy_async
+  has_many :ottiv_calls, dependent: :destroy_async
 
   has_one_attached :contacts_export
 

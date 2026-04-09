@@ -19,6 +19,12 @@ ottiv_complete_past_items_job:
   class: 'Ottiv::Core::Jobs::CompletePastItemsJob'
   queue: ottiv_core_scheduled_jobs
 
+# Re-enfileira downloads de gravação Wavoip presos em pending_recording
+ottiv_reconcile_pending_call_recordings_job:
+  cron: '*/15 * * * *'
+  class: 'Ottiv::Core::Jobs::ReconcilePendingCallRecordingsJob'
+  queue: ottiv_core_scheduled_jobs
+
 # executed At every minute..
 trigger_imap_email_inboxes_job:
   cron: '*/1 * * * *'

@@ -677,6 +677,15 @@ Rails.application.routes.draw do
 
       resources :ottiv_sources, only: [:index],
                 controller: 'ottiv/core/controllers/api/v1/accounts/sources'
+
+      post 'ottiv_calls/sync',
+           to: 'ottiv/core/controllers/api/v1/accounts/ottiv_calls#sync'
+
+      get 'ottiv_calls',
+          to: 'ottiv/analytics/controllers/api/v1/accounts/calls#index'
+
+      get 'ottiv_calls/summary',
+          to: 'ottiv/analytics/controllers/api/v1/accounts/calls#summary'
     end
   end
 
