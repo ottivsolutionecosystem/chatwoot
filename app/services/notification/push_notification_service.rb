@@ -39,7 +39,9 @@ class Notification::PushNotificationService
   end
 
   def push_url
-    app_account_conversation_url(account_id: conversation.account_id, id: conversation.display_id)
+    path = app_account_conversation_path(account_id: conversation.account_id, id: conversation.display_id)
+    base = ENV['PUSH_NOTIFICATION_LINK_BASE'].presence || ENV.fetch('FRONTEND_URL', '')
+    "#{base.to_s.chomp('/')}#{path}"
   end
 
   def can_send_browser_push?(subscription)
