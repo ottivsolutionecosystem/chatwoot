@@ -9,6 +9,30 @@ module Ottiv::Core
             before_action :authorize_ottiv_call_sync!, only: [:sync]
             before_action :authorize_sync_conversation!, only: [:sync]
 
+            def resolve_call_conversation
+              inbox = Current.account.inboxes.find(resolve_params[:inbox_id])
+              authorize inbox, :show?
+
+              result = ::Ottiv::Core::Services::Wavoip::ResolveCallConversationService.new(
+                account: Current.account,
+                user: Current.user,
+                inbox: inbox,
+                phone_raw: resolve_params[:phone_number],
+                contact_display_name: resolve_params[:contact_name]
+              ).perform
+
+              render json: result, status: :ok
+            rescue ActiveRecord::RecordNotFound
+              render json: { error: 'Inbox não encontrada' }, status: :not_found
+            rescue ArgumentError => e
+              render json: { error: e.message }, status: :unprocessable_entity
+            rescue Pundit::NotAuthorizedError
+              render json: { error: 'Acesso negado' }, status: :forbidden
+            rescue StandardError => e
+              Rails.logger.error("[OttivCalls#resolve_call_conversation] #{e.class}: #{e.message}\n#{e.backtrace&.first(10)&.join("\n")}")
+              render json: { error: 'Internal server error', message: e.message }, status: :internal_server_error
+            end
+
             def sync
               service = ::Ottiv::Core::Services::Calls::UpsertFromClientEvent.new(
                 account: Current.account,
@@ -39,6 +63,10 @@ module Ottiv::Core
               end
 
               authorize conv, :show?
+            end
+
+            def resolve_params
+              params.permit(:phone_number, :inbox_id, :contact_name)
             end
 
             def sync_params

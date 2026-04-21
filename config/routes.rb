@@ -681,6 +681,9 @@ Rails.application.routes.draw do
       post 'ottiv_calls/sync',
            to: 'ottiv/core/controllers/api/v1/accounts/ottiv_calls#sync'
 
+      post 'ottiv_calls/resolve_call_conversation',
+           to: 'ottiv/core/controllers/api/v1/accounts/ottiv_calls#resolve_call_conversation'
+
       get 'ottiv_calls',
           to: 'ottiv/analytics/controllers/api/v1/accounts/calls#index'
 
