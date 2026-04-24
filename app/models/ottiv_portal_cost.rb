@@ -17,7 +17,7 @@ class OttivPortalCost < ApplicationRecord
   belongs_to :ottiv_portal, foreign_key: :portal_id
   belongs_to :ottiv_cost_type, foreign_key: :cost_type_id
 
-  validates :amount, presence: true, numericality: { greater_than: 0 }
+  validates :amount, presence: true, numericality: { greater_than_or_equal_to: 0 }
   validates :reference_period_start, presence: true
   validates :reference_period_end, presence: true
   validate :reference_period_end_after_start

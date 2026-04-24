@@ -3,6 +3,9 @@
 # Baseado em docker-compose.auttus.yaml — use este compose no lugar do auttus quando
 # o frontend for consumido externamente (ex.: app Flutter) e não for necessária a UI web.
 #
+# Não inclui chatwoot_worker: o Sidekiq já roda no stack principal (ex.: on.ottiv.io).
+# Mesmo Redis/Postgres — a fila é compartilhada; não suba um segundo worker para o mesmo ambiente.
+#
 # FRONTEND_URL deve ser a URL pública desta instalação (a mesma do Traefik): webhooks
 # (WhatsApp, Telegram, etc.), mailers e default_url_options usam isso.
 # Push (browser + FCM): o link "abrir conversa" usa FRONTEND_URL, ou PUSH_NOTIFICATION_LINK_BASE
@@ -123,13 +126,11 @@ x-variaveis:
     # MAILER_INBOUND_EMAIL_DOMAIN: seudominio.com.br
     # RAILS_INBOUND_EMAIL_PASSWORD: your-mandrill-p@ssw0rd
 
-# Backend API + worker (igual ao auttus; comando Rails não precisa mudar — o modo API é só env)
+# Somente o processo Rails (API); Sidekiq fica no outro deploy.
 services:
-  chatwoot:
-    command: >
-      sh -c "bundle exec rails db:chatwoot_prepare
-      && bundle exec rails s -p 3000 -b 0.0.0.0"
-    # && bundle exec rails db:migrate
+  chatwoot_api:
+    # chatwoot_prepare / migrate ficam no stack principal; aqui só o HTTP (entrypoint rails.sh exige um processo em "$@").
+    command: ["bundle", "exec", "rails", "s", "-p", "3000", "-b", "0.0.0.0"]
     environment:
       <<: *variaveis
     image: ottiv/chatwoot:${VERSION}
@@ -151,23 +152,23 @@ services:
       labels:
         - traefik.enable=true
 
-        - traefik.http.routers.chatwoot.rule=Host(`api.ottiv.io`)
-        - traefik.http.routers.chatwoot.entrypoints=websecure
-        - traefik.http.routers.chatwoot.tls.certresolver=le
-        - traefik.http.routers.chatwoot.service=chatwoot
-        - traefik.http.routers.chatwoot.middlewares=upload-buffer
+        - traefik.http.routers.chatwoot_api.rule=Host(`api.ottiv.io`)
+        - traefik.http.routers.chatwoot_api.entrypoints=websecure
+        - traefik.http.routers.chatwoot_api.tls.certresolver=le
+        - traefik.http.routers.chatwoot_api.service=chatwoot_api
+        - traefik.http.routers.chatwoot_api.middlewares=chatwoot-api-upload-buffer
 
-        - traefik.http.services.chatwoot.loadbalancer.server.port=3000
-        - traefik.http.services.chatwoot.loadbalancer.passhostheader=true
+        - traefik.http.services.chatwoot_api.loadbalancer.server.port=3000
+        - traefik.http.services.chatwoot_api.loadbalancer.passhostheader=true
 
-        # Middleware inline - Configurado para suportar uploads de até 200MB
-        - traefik.http.middlewares.upload-buffer.buffering.maxRequestBodyBytes=209715200
-        - traefik.http.middlewares.upload-buffer.buffering.memRequestBodyBytes=4194304
-        - traefik.http.middlewares.upload-buffer.buffering.maxResponseBodyBytes=209715200
-        - traefik.http.middlewares.upload-buffer.buffering.memResponseBodyBytes=4194304
-        - traefik.http.middlewares.upload-buffer.buffering.retryExpression=IsNetworkError() && Attempts() <= 2
+        # Middleware inline - Configurado para suportar uploads de até 200MB (nome único vs stack on.ottiv.io)
+        - traefik.http.middlewares.chatwoot-api-upload-buffer.buffering.maxRequestBodyBytes=209715200
+        - traefik.http.middlewares.chatwoot-api-upload-buffer.buffering.memRequestBodyBytes=4194304
+        - traefik.http.middlewares.chatwoot-api-upload-buffer.buffering.maxResponseBodyBytes=209715200
+        - traefik.http.middlewares.chatwoot-api-upload-buffer.buffering.memResponseBodyBytes=4194304
+        - traefik.http.middlewares.chatwoot-api-upload-buffer.buffering.retryExpression=IsNetworkError() && Attempts() <= 2
         # Timeouts para uploads grandes (10 horas)
-        - traefik.http.services.chatwoot.loadbalancer.responseForwarding.flushInterval=1ms
+        - traefik.http.services.chatwoot_api.loadbalancer.responseForwarding.flushInterval=1ms
 
     volumes:
       - chatwoot_data:/app/storage
@@ -176,32 +177,6 @@ services:
       # - /root/apps/chatwoot/public:/app/public
     networks:
       - traefik
-      - interna
-
-  chatwoot_worker:
-    environment:
-      <<: *variaveis
-    image: ottiv/chatwoot:${VERSION}
-    command: bundle exec sidekiq -C config/sidekiq.yml
-    volumes:
-      - chatwoot_data:/app/storage
-      - chatwoot_app:/app
-      # Pasta com os arquivos do frontend (favicon, logo e outras)
-      # - /root/apps/chatwoot/public:/app/public
-    deploy:
-      mode: replicated
-      replicas: 1
-      resources:
-        limits:
-          memory: 4G
-          cpus: '3.0'
-        reservations:
-          memory: 1G
-          cpus: '0.5'
-      placement:
-        constraints:
-          - node.role == manager
-    networks:
       - interna
 
 volumes:

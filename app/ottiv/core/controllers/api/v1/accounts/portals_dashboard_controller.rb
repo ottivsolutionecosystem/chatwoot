@@ -58,9 +58,11 @@ module Ottiv::Core
                   deals_query = <<-SQL.squish
                     SELECT d.id
                     FROM deals d
+                    INNER JOIN pipeline_stages ps ON ps.id = d.stage_id AND ps.account_id = d.account_id
                     WHERE d.account_id = ?
                       AND d.source_id = ?
                       AND d.delete_at IS NULL
+                      AND ps.is_final = TRUE
                   SQL
 
                   deals = ActiveRecord::Base.connection.select_all(
@@ -153,9 +155,11 @@ module Ottiv::Core
                   deals_query = <<-SQL.squish
                     SELECT d.id
                     FROM deals d
+                    INNER JOIN pipeline_stages ps ON ps.id = d.stage_id AND ps.account_id = d.account_id
                     WHERE d.account_id = ?
                       AND d.source_id IN (#{source_placeholders})
                       AND d.delete_at IS NULL
+                      AND ps.is_final = TRUE
                   SQL
 
                   deals = ActiveRecord::Base.connection.select_all(

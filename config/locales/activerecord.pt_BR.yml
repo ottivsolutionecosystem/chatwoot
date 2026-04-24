@@ -1,0 +1,13 @@
+# Traduções ActiveRecord / ActiveModel para pt_BR (ex.: validações de models Ottiv).
+pt_BR:
+  activerecord:
+    errors:
+      messages:
+        greater_than: 'deve ser maior que %{count}'
+        greater_than_or_equal_to: 'deve ser maior ou igual a %{count}'
+      models:
+        ottiv_portal_cost:
+          attributes:
+            amount:
+              greater_than: 'deve ser maior que %{count}'
+              greater_than_or_equal_to: 'deve ser maior ou igual a %{count}'
