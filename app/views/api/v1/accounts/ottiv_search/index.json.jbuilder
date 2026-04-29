@@ -48,6 +48,7 @@ json.data do
     if message[:conversation]
       json.conversation do
         json.id message[:conversation][:id]
+        json.inbox_id message[:conversation][:inbox_id]
         json.status message[:conversation][:status]
         json.contact do
           json.id message[:conversation][:contact][:id]
