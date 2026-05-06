@@ -19,11 +19,19 @@ module Controllers
             private
 
             def ottiv_search_service
-              @ottiv_search_service ||= ::Ottiv::Core::Services::SearchService.new(
+              @ottiv_search_service ||= search_service_class.new(
                 current_user: Current.user,
                 current_account: Current.account,
                 params: ottiv_search_params
               )
+            end
+
+            def search_service_class
+              if ::Ottiv::Meilisearch.globally_enabled? && Current.account.ottiv_meilisearch_enabled?
+                ::Ottiv::Core::Services::OttivMeilisearchSearchService
+              else
+                ::Ottiv::Core::Services::SearchService
+              end
             end
 
             def ottiv_search_params

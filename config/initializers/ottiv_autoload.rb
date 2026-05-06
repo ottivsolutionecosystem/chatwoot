@@ -43,8 +43,12 @@ module Ottiv
       module Wavoip; end
     end
 
-    module Jobs; end
+    module Jobs
+      module OttivSearch; end
+    end
     module Queries; end
+    module Concerns; end
+    module Meilisearch; end
   end
 end
 

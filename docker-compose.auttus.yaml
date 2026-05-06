@@ -32,6 +32,11 @@ x-variaveis:
 
     IP_LOOKUP_API_KEY: "${IP_LOOKUP_API_KEY:-}"
 
+    # Meilisearch — busca agrupada Ottiv
+    MEILISEARCH_HOST: "${MEILISEARCH_HOST:-http://meilisearch:7700}"
+    MEILISEARCH_KEY: "${MEILISEARCH_KEY:-}"
+    OTTIV_MEILISEARCH_ENABLED: "${OTTIV_MEILISEARCH_ENABLED:-false}"
+
     INSTALLATION_ONBOARDING_COMPLETE: "true"
     SKIP_INSTALLATION_ONBOARDING: "true"
 

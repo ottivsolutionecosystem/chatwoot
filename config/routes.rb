@@ -637,7 +637,8 @@ Rails.application.routes.draw do
       resources :ottiv_deals, only: [],
                 controller: 'ottiv/core/controllers/api/v1/accounts/deals' do
         collection do
-          post :process
+          get :by_contact
+          get :by_conversation
         end
       end
 
@@ -689,6 +690,18 @@ Rails.application.routes.draw do
 
       get 'ottiv_calls/summary',
           to: 'ottiv/analytics/controllers/api/v1/accounts/calls#summary'
+
+      # Meilisearch — endpoints de operação/validação
+      resource :ottiv_meilisearch, only: [],
+               controller: 'ottiv/core/controllers/api/v1/accounts/meilisearch' do
+        collection do
+          get  :health
+          post :provision
+          post :index_sample
+          post :test_search
+          post :reindex_account
+        end
+      end
     end
   end
 
