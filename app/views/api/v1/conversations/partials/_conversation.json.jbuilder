@@ -4,7 +4,15 @@
 
 json.meta do
   json.sender do
-    json.partial! 'api/v1/models/contact', formats: [:json], resource: conversation.contact
+    if conversation.contact.present?
+      json.partial! 'api/v1/models/contact', formats: [:json], resource: conversation.contact
+    else
+      json.id nil
+      json.name I18n.t('conversations.unassigned_contact', default: 'Contato removido')
+      json.email nil
+      json.phone_number nil
+      json.thumbnail nil
+    end
   end
   json.channel conversation.inbox.try(:channel_type)
   if conversation.assignee&.account

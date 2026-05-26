@@ -5,11 +5,20 @@
 # Meta do contato (sender) e assignee
 json.meta do
   json.sender do
-    json.id conversation.contact.id
-    json.name conversation.contact.name
-    json.email conversation.contact.email
-    json.phone_number conversation.contact.phone_number
-    json.thumbnail conversation.contact.avatar_url
+    contact = conversation.contact
+    if contact.present?
+      json.id contact.id
+      json.name contact.name
+      json.email contact.email
+      json.phone_number contact.phone_number
+      json.thumbnail contact.avatar_url
+    else
+      json.id nil
+      json.name I18n.t('conversations.unassigned_contact', default: 'Contato removido')
+      json.email nil
+      json.phone_number nil
+      json.thumbnail nil
+    end
   end
   json.channel conversation.inbox.try(:channel_type)
   
