@@ -615,6 +615,7 @@ Rails.application.routes.draw do
                 controller: 'ottiv/core/controllers/api/v1/accounts/scheduled_messages' do
         member do
           post :send_message
+          post :cancel_series
         end
       end
 
@@ -678,6 +679,12 @@ Rails.application.routes.draw do
 
       resources :ottiv_sources, only: [:index],
                 controller: 'ottiv/core/controllers/api/v1/accounts/sources'
+
+      resources :ottiv_canned_responses, only: [:index],
+                controller: 'ottiv/core/controllers/api/v1/accounts/canned_responses'
+
+      resources :ottiv_personal_canned_responses, only: [:create, :update, :destroy],
+                controller: 'ottiv/core/controllers/api/v1/accounts/personal_canned_responses'
 
       post 'ottiv_calls/sync',
            to: 'ottiv/core/controllers/api/v1/accounts/ottiv_calls#sync'

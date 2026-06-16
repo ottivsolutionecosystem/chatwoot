@@ -132,7 +132,7 @@ module Services
           next_send_at = calculate_next_send_at
           return if next_send_at.nil?
 
-          # Create new scheduled message for next occurrence
+          # Create new scheduled message for next occurrence, preserving series_id
           OttivScheduledMessage.create!(
             title: scheduled_message.title,
             message_type: scheduled_message.message_type,
@@ -147,7 +147,8 @@ module Services
             timezone: scheduled_message.timezone,
             recurrence: scheduled_message.recurrence,
             status: :scheduled,
-            created_by: scheduled_message.created_by
+            created_by: scheduled_message.created_by,
+            series_id: scheduled_message.series_id
           )
         end
 

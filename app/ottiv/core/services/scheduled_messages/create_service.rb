@@ -44,7 +44,8 @@ module Services
             :contact_id,
             :send_at,
             :timezone,
-            :recurrence
+            :recurrence,
+            :series_id
           )
 
           # Converter message_type de string para número se necessário
