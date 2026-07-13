@@ -41,6 +41,7 @@ module Ottiv
       module ScheduledMessages; end
       module CalendarItems; end
       module Wavoip; end
+      module Finance; end
     end
 
     module Jobs

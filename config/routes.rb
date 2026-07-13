@@ -635,6 +635,22 @@ Rails.application.routes.draw do
       resources :ottiv_portal_costs, only: [:index, :show, :create, :update, :destroy],
                 controller: 'ottiv/core/controllers/api/v1/accounts/portal_costs'
 
+      resources :ottiv_finance_negotiations, only: [:index, :show, :create, :update],
+                controller: 'ottiv/core/controllers/api/v1/accounts/finance_negotiations' do
+        member do
+          post :submit
+          post :query_banks
+          post :opinions, action: :add_opinion
+          patch 'opinions/:offer_id', action: :update_opinion
+          post 'documents/request', action: :request_documents
+          post 'documents/:document_id/upload', action: :upload_document
+          post 'documents/:document_id/provide_data', action: :provide_document_data
+          post 'offers/:offer_id/installments/:installment_id/mark', action: :mark_installment
+          post :close
+          post :proposal_sent
+        end
+      end
+
       resources :ottiv_deals, only: [],
                 controller: 'ottiv/core/controllers/api/v1/accounts/deals' do
         collection do

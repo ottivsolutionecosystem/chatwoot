@@ -167,10 +167,8 @@ services:
         - traefik.http.services.chatwoot_dev.loadbalancer.responseForwarding.flushInterval=1ms
 
     volumes:
-      - chatwoot_dev_data:/app/storage  # Volume separado para testes
-      - chatwoot_dev_app:/app
-      # Pasta com os arquivos do frontend (favicon, logo e outras)
-      # - /root/apps/chatwoot/public:/app/public
+      # Só storage: NÃO montar /app — senão o volume shadow a imagem e deploy-dev.sh não atualiza o código
+      - chatwoot_dev_data:/app/storage
     networks:
       - externa
       - interna
@@ -182,10 +180,7 @@ services:
     image: ottiv/chatwoot-dev:${VERSION}
     command: bundle exec sidekiq -C config/sidekiq.yml
     volumes:
-      - chatwoot_dev_data:/app/storage  # Volume separado para testes
-      - chatwoot_dev_app:/app
-      # Pasta com os arquivos do frontend (favicon, logo e outras)
-      # - /root/apps/chatwoot/public:/app/public
+      - chatwoot_dev_data:/app/storage
     logging:
       driver: 'json-file'
       options:
@@ -218,7 +213,6 @@ services:
     command: bin/vite dev
     volumes:
       - chatwoot_dev_data:/app/storage
-      - chatwoot_dev_app:/app
     logging:
       driver: 'json-file'
       options:
@@ -238,8 +232,7 @@ services:
       - interna
 
 volumes:
-  chatwoot_dev_data:  # Volumes separados para não misturar com produção
-  chatwoot_dev_app:
+  chatwoot_dev_data:
 
 networks:
   externa:
